@@ -35,13 +35,21 @@ export default function HomePage(){
   const refresh=async()=>{try{const [transactions,accounts,clients,loans,borrowings,recurring]=await Promise.all(STORES.map(s=>all<any>(s)));setData({transactions,accounts,clients,loans,borrowings,recurring});setLoadError("");setReady(true)}catch(error){setLoadError(error instanceof Error?error.message:"Could not load cloud data");setReady(false)}};
   useEffect(()=>{refresh()},[]);
   const tx:Transaction[]=data.transactions;
-  const month=today().slice(0,7), mt=tx.filter(t=>t.date.startsWith(month));
+  const currentMonth=today().slice(0,7);
+  const [selectedMonth,setSelectedMonth]=useState(currentMonth);
+  const monthOptions=useMemo(()=>{
+    const months=new Set<string>();
+    for(let i=0;i<12;i++){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);months.add(d.toISOString().slice(0,7))}
+    tx.forEach(t=>months.add(t.date.slice(0,7)));
+    return [...months].sort().reverse();
+  },[tx]);
+  const mt=tx.filter(t=>t.date.startsWith(selectedMonth));
   const totals=useMemo(()=>({income:mt.filter(t=>["income","clientPayment"].includes(t.type)).reduce((s,t)=>s+t.amount,0),expense:mt.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0)}),[mt]);
   const clientPending=data.clients.reduce((s:number,c:Client)=>s+Math.max(0,c.billed-c.received),0);
   const loanPending=data.loans.reduce((s:number,l:Loan)=>s+Math.max(0,l.amount-l.repaid),0);
   const borrowingPending=data.borrowings.reduce((s:number,b:Borrowing)=>s+Math.max(0,b.amount-b.repaid),0);
   const saveTx=async(t:Transaction)=>{await put("transactions",t); if(t.type==="clientPayment"&&t.clientId){const c=data.clients.find((x:Client)=>x.id===t.clientId);if(c)await put("clients",{...c,received:c.received+t.amount})} if(t.type==="loanRepayment"&&t.loanId){const l=data.loans.find((x:Loan)=>x.id===t.loanId);if(l)await put("loans",{...l,repaid:l.repaid+t.amount})} await refresh();setShowAdd(false)};
-  const page=tab==="home"?<Dashboard {...{totals,clientPending,loanPending,borrowingPending,tx,setTab,setShowAdd}}/>:
+  const page=tab==="home"?<Dashboard {...{totals,clientPending,loanPending,borrowingPending,tx,setTab,setShowAdd,selectedMonth,setSelectedMonth,monthOptions}}/>:
     tab==="transactions"?<Transactions tx={tx} onDelete={async(id)=>{await del("transactions",id);await refresh()}}/>:
     tab==="accounts"?<Accounts accounts={data.accounts} tx={tx} refresh={refresh}/>:
     tab==="clients"?<Clients clients={data.clients} tx={tx} refresh={refresh}/>:
@@ -63,8 +71,9 @@ export default function HomePage(){
   </main>
 }
 
-function Dashboard({totals,clientPending,loanPending,borrowingPending,tx,setTab,setShowAdd}:any){return <section className="content">
-  <div className="stats-grid income-spending-only"><Stat title="Income" value={money(totals.income)} note="This month" cls="positive"/><Stat title="Spending" value={money(totals.expense)} note="This month" cls="negative"/></div>
+function Dashboard({totals,clientPending,loanPending,borrowingPending,tx,setTab,setShowAdd,selectedMonth,setSelectedMonth,monthOptions}:any){const label=(m:string)=>new Date(`${m}-01T12:00:00`).toLocaleDateString("en-IN",{month:"long",year:"numeric"});const monthTx=tx.filter((t:Transaction)=>t.date.startsWith(selectedMonth));return <section className="content">
+  <div className="month-picker"><div><span>Cash flow overview</span><strong>{label(selectedMonth)}</strong></div><select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} aria-label="Select month">{monthOptions.map((m:string)=><option value={m} key={m}>{label(m)}</option>)}</select></div>
+  <div className="stats-grid income-spending-only"><Stat title="Income" value={money(totals.income)} note={label(selectedMonth)} cls="positive"/><Stat title="Spending" value={money(totals.expense)} note={label(selectedMonth)} cls="negative"/></div>
   <div className="section-head"><h2>Money to receive</h2></div><div className="receive-grid">
     <button className="receive-card" onClick={()=>setTab("clients")}><BriefcaseBusiness size={20}/><span>Client receivables</span><strong>{money(clientPending)}</strong><small>Pending from clients</small></button>
     <button className="receive-card" onClick={()=>setTab("loans")}><HandCoins size={20}/><span>Kadam Koduthathu</span><strong>{money(loanPending)}</strong><small>Outstanding</small></button>
@@ -73,9 +82,9 @@ function Dashboard({totals,clientPending,loanPending,borrowingPending,tx,setTab,
     <button className="receive-card" onClick={()=>setTab("borrowings")}><HandCoins size={20}/><span>Kadam Vangiyath</span><strong>{money(borrowingPending)}</strong><small>You need to repay</small></button>
   </div>
   <div className="section-head"><h2>Upcoming payments</h2><button onClick={()=>setTab("recurring")}>Manage</button></div>
-  <div className="upcoming">{tx.length===0?<div className="empty-state">No transactions yet. Tap + to start.</div>:<div className="upcoming-row"><CalendarDays size={18}/><div><strong>Recurring payments</strong><span>Track rent, subscriptions and bills</span></div><ChevronRight size={17}/></div>}</div>
+  <div className="upcoming">{monthTx.length===0?<div className="empty-state">No transactions for {label(selectedMonth)}.</div>:<div className="upcoming-row"><CalendarDays size={18}/><div><strong>Recurring payments</strong><span>Track rent, subscriptions and bills</span></div><ChevronRight size={17}/></div>}</div>
   <div className="section-head"><h2>Recent transactions</h2><button onClick={()=>setTab("transactions")}>View all</button></div>
-  <div className="transaction-list">{tx.length===0?<div className="empty-state">Your transactions will appear here.</div>:tx.sort((a:Transaction,b:Transaction)=>b.date.localeCompare(a.date)).slice(0,8).map((t:Transaction)=><TxRow key={t.id} t={t}/>)}</div>
+  <div className="transaction-list">{monthTx.length===0?<div className="empty-state">No transactions for {label(selectedMonth)}.</div>:monthTx.sort((a:Transaction,b:Transaction)=>b.date.localeCompare(a.date)).slice(0,8).map((t:Transaction)=><TxRow key={t.id} t={t}/>)}</div>
 </section>}
 
 function Stat({title,value,note,cls}:{title:string,value:string,note:string,cls:string}){return <div className="stat-card"><span>{title}</span><strong className={cls}>{value}</strong><small>{note}</small></div>}
