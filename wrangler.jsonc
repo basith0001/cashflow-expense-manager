@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "cashflow-expense-manager",
+  "main": ".open-next/worker.js",
   "compatibility_date": "2026-09-17",
   "observability": {
     "enabled": true
