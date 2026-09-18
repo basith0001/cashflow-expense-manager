@@ -4,8 +4,9 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BarChart3, Bell, BriefcaseBusiness,
   CalendarDays, ChevronRight, CreditCard, Download, FileText, HandCoins, Home, Upload,
-  Plus, ReceiptText, Search, Settings, Trash2, Wallet, X
+  LogOut, Mail, Plus, ReceiptText, Search, Settings, Trash2, Wallet, X
 } from "lucide-react";
+import { supabase, supabaseConfigured } from "./lib/supabase";
 
 type TxType = "income" | "expense" | "transfer" | "clientPayment" | "loanGiven" | "loanRepayment";
 type Transaction = {
@@ -22,17 +23,51 @@ const STORES=["transactions","accounts","clients","loans","borrowings","recurrin
 const CATEGORIES=["Food","Transport","Shopping","Bills","Rent","Subscriptions","Entertainment","Personal","Other"];
 const ACCOUNT_TYPES=["Cash","Bank account","Credit card","UPI","Wallet"];
 
-async function all<T>(store:string):Promise<T[]>{const r=await fetch(`/api/data?store=${encodeURIComponent(store)}`,{cache:"no-store"});if(!r.ok)throw new Error("Could not load cloud data");const j=await r.json();return j.data as T[]}
-async function put(store:string,value:any){const r=await fetch("/api/data",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({store,value})});if(!r.ok)throw new Error("Could not save cloud data")}
-async function del(store:string,id:string){const r=await fetch(`/api/data?store=${encodeURIComponent(store)}&id=${encodeURIComponent(id)}`,{method:"DELETE"});if(!r.ok)throw new Error("Could not delete cloud data")}
+async function authFetch(input:RequestInfo|URL,init?:RequestInit){
+  if(!supabase)throw new Error("Supabase is not configured");
+  const {data:{session}}=await supabase.auth.getSession();
+  if(!session?.access_token)throw new Error("Authentication required");
+  const headers=new Headers(init?.headers);
+  headers.set("Authorization",`Bearer ${session.access_token}`);
+  return fetch(input,{...init,headers});
+}
+async function all<T>(store:string):Promise<T[]>{const r=await authFetch(`/api/data?store=${encodeURIComponent(store)}`,{cache:"no-store"});if(!r.ok)throw new Error(r.status===401?"Authentication required":"Could not load cloud data");const j=await r.json();return j.data as T[]}
+async function put(store:string,value:any){const r=await authFetch("/api/data",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({store,value})});if(!r.ok)throw new Error(r.status===401?"Authentication required":"Could not save cloud data")}
+async function del(store:string,id:string){const r=await authFetch(`/api/data?store=${encodeURIComponent(store)}&id=${encodeURIComponent(id)}`,{method:"DELETE"});if(!r.ok)throw new Error(r.status===401?"Authentication required":"Could not delete cloud data")}
 const uid=()=>crypto.randomUUID(); const today=()=>new Date().toISOString().slice(0,10);
 const money=(n:number)=>`₹${Math.abs(n).toLocaleString("en-IN")}`;
 const signed=(n:number)=>`${n>=0?"+":"-"}${money(n)}`;
 
 export default function HomePage(){
-  const [tab,setTab]=useState("home"),[showAdd,setShowAdd]=useState(false),[sub,setSub]=useState(""),[data,setData]=useState<any>({transactions:[],accounts:[],clients:[],loans:[],borrowings:[],recurring:[]}),[ready,setReady]=useState(false);
-  const refresh=async()=>{const [transactions,accounts,clients,loans,borrowings,recurring]=await Promise.all(STORES.map(s=>all<any>(s)));setData({transactions,accounts,clients,loans,borrowings,recurring});setReady(true)};
-  useEffect(()=>{refresh()},[]);
+  const [tab,setTab]=useState("home"),[showAdd,setShowAdd]=useState(false),[sub,setSub]=useState(""),[data,setData]=useState<any>({transactions:[],accounts:[],clients:[],loans:[],borrowings:[],recurring:[]}),[ready,setReady]=useState(false),[user,setUser]=useState<any>(null),[authReady,setAuthReady]=useState(false),[loadError,setLoadError]=useState("");
+  const refresh=async()=>{
+    try{
+      const [transactions,accounts,clients,loans,borrowings,recurring]=await Promise.all(STORES.map(s=>all<any>(s)));
+      setData({transactions,accounts,clients,loans,borrowings,recurring});
+      setLoadError("");
+      setReady(true);
+    }catch(error){
+      setLoadError(error instanceof Error?error.message:"Could not load cloud data");
+      setReady(false);
+    }
+  };
+  useEffect(()=>{
+    if(!supabase){setAuthReady(true);return}
+    let mounted=true;
+    supabase.auth.getSession().then(({data:{session}})=>{
+      if(!mounted)return;
+      setUser(session?.user||null);
+      setAuthReady(true);
+    });
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
+      setUser(session?.user||null);
+    });
+    return ()=>{mounted=false;subscription.unsubscribe()};
+  },[]);
+  useEffect(()=>{
+    if(user)refresh();
+    else{setReady(false);setLoadError("")}
+  },[user]);
   const tx:Transaction[]=data.transactions;
   const month=today().slice(0,7), mt=tx.filter(t=>t.date.startsWith(month));
   const totals=useMemo(()=>({income:mt.filter(t=>["income","clientPayment"].includes(t.type)).reduce((s,t)=>s+t.amount,0),expense:mt.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0)}),[mt]);
@@ -50,7 +85,12 @@ export default function HomePage(){
     tab==="analytics"?<Analytics tx={tx}/>:
     tab==="reports"?<Reports tx={tx} accounts={data.accounts}/>:
     tab==="backup"?<Backup data={data} refresh={refresh}/>:
-    <More onNavigate={setTab}/>;
+    <More onNavigate={setTab} user={user} onLogout={logout}/>;
+  const logout=async()=>{await supabase?.auth.signOut();setUser(null);setReady(false)};
+  if(!supabaseConfigured)return <SetupScreen/>;
+  if(!authReady)return <main className="app-shell"><div className="loading">Checking your login…</div></main>;
+  if(!user)return <AuthScreen/>;
+  if(loadError)return <main className="app-shell"><div className="auth-shell"><div className="auth-card"><div className="auth-brand"><Wallet size={26}/></div><h1>Could not load your data</h1><p>{loadError}</p><button className="auth-button" onClick={refresh}>Try again</button><button className="auth-link" onClick={logout}>Sign out</button></div></div></main>;
   if(!ready)return <main className="app-shell"><div className="loading">Loading your finance data…</div></main>;
   return <main className="app-shell">
     <header className="topbar"><div><p className="eyebrow">PERSONAL FINANCE</p><h1>{tab==="home"?"Good evening":tab==="clients"?"Clients & Receivables":tab==="loans"?"Kadam Koduthathu":tab==="borrowings"?"Kadam Vangiyath":tab[0].toUpperCase()+tab.slice(1)}</h1></div><button className="icon-btn"><Bell size={19}/></button></header>
@@ -60,6 +100,10 @@ export default function HomePage(){
     {showAdd&&<AddTransaction {...{data,onClose:()=>setShowAdd(false),onSave:saveTx}}/>}
   </main>
 }
+
+function SetupScreen(){return <main className="app-shell"><div className="auth-shell"><div className="auth-card"><div className="auth-brand"><Wallet size={28}/></div><p className="eyebrow">PERSONAL FINANCE</p><h1>Connect your account</h1><p>Authentication is ready in the app, but the Supabase environment variables still need to be added to Cloudflare.</p><div className="setup-code"><code>NEXT_PUBLIC_SUPABASE_URL</code><code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code></div><p className="auth-note">Add those two build/runtime variables in Cloudflare Workers & Pages, then redeploy.</p></div></div></main>}
+
+function AuthScreen(){const [email,setEmail]=useState(""),[sent,setSent]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState("");const submit=async(e:FormEvent)=>{e.preventDefault();if(!supabase||!email.trim())return;setBusy(true);setError("");const {error}=await supabase.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:window.location.origin}});if(error)setError(error.message);else setSent(true);setBusy(false)};return <main className="app-shell"><div className="auth-shell"><div className="auth-card"><div className="auth-brand"><Wallet size={28}/></div><p className="eyebrow">PERSONAL FINANCE</p><h1>{sent?"Check your email":"Welcome back"}</h1>{sent?<><p className="auth-lead">We sent a secure sign-in link to <strong>{email}</strong>.</p><button className="auth-link" onClick={()=>setSent(false)}>Use a different email</button></>:<form onSubmit={submit}><p className="auth-lead">Sign in to keep your finance data private and available across devices.</p><label className="auth-label">Email address<input className="auth-input" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required/></label>{error&&<p className="auth-error">{error}</p>}<button className="auth-button" disabled={busy}>{busy?"Sending…":"Send sign-in link"}</button></form>}<p className="auth-note">No password needed. Supabase sends a one-time magic link.</p></div></div></main>}
 
 function Dashboard({totals,clientPending,loanPending,borrowingPending,tx,setTab,setShowAdd}:any){return <section className="content">
   <div className="stats-grid income-spending-only"><Stat title="Income" value={money(totals.income)} note="This month" cls="positive"/><Stat title="Spending" value={money(totals.expense)} note="This month" cls="negative"/></div>
@@ -94,11 +138,11 @@ function Recurring({items,refresh}:{items:Recurring[],refresh:()=>void}){const [
 
 function Analytics({tx}:{tx:Transaction[]}){const expenses=tx.filter(t=>t.type==="expense"),income=tx.filter(t=>["income","clientPayment"].includes(t.type));const totalE=expenses.reduce((s,t)=>s+t.amount,0),totalI=income.reduce((s,t)=>s+t.amount,0);const cats=CATEGORIES.map(c=>({c,n:expenses.filter(t=>t.category===c).reduce((s,t)=>s+t.amount,0)})).filter(x=>x.n).sort((a,b)=>b.n-a.n);return <section className="content page"><div className="page-title"><BarChart3/><div><h2>Analytics</h2><p>Understand your income, spending and cash flow.</p></div></div><div className="stats-grid"><Stat title="Total income" value={money(totalI)} note="All time" cls="positive"/><Stat title="Total spending" value={money(totalE)} note="All time" cls="negative"/></div><div className="chart-card"><h3>Spending by category</h3>{cats.length?cats.map(x=><div className="bar-row" key={x.c}><span>{x.c}</span><div><i style={{width:`${totalE?Math.max(5,x.n/totalE*100):0}%`}}/></div><b>{money(x.n)}</b></div>):<div className="empty-state">Add expenses to see your breakdown.</div>}</div><div className="chart-card"><h3>Cash-flow trend</h3><div className="trend"><div><span>Income</span><b>{money(totalI)}</b></div><div><span>Spending</span><b>{money(totalE)}</b></div><div><span>Net</span><b>{signed(totalI-totalE)}</b></div></div></div></section>}
 
-function Reports({tx,accounts}:{tx:Transaction[],accounts:Account[]}){const download=()=>{const rows=[["Date","Type","Title","Category","Account","Amount","Note"],...tx.map(t=>[t.date,t.type,t.title,t.category,t.account,t.amount,t.note||""])];const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`cashflow-report-${today()}.csv`;a.click();URL.revokeObjectURL(a.href)};return <section className="content page"><div className="page-title"><FileText/><div><h2>Reports</h2><p>Export your cloud finance data whenever you need it.</p></div></div><div className="report-card"><Download size={22}/><div><strong>Transactions CSV</strong><span>{tx.length} transactions · {accounts.length} accounts</span></div><button onClick={download}>Export</button></div><div className="empty-card">Your finance data is stored securely in Cloudflare D1. Keep a backup file as an extra safety layer.</div></section>}
+function Reports({tx,accounts}:{tx:Transaction[],accounts:Account[]}){const download=()=>{const rows=[["Date","Type","Title","Category","Account","Amount","Note"],...tx.map(t=>[t.date,t.type,t.title,t.category,t.account,t.amount,t.note||""])];const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`cashflow-report-${today()}.csv`;a.click();URL.revokeObjectURL(a.href)};return <section className="content page"><div className="page-title"><FileText/><div><h2>Reports</h2><p>Export your cloud finance data whenever you need it.</p></div></div><div className="report-card"><Download size={22}/><div><strong>Transactions CSV</strong><span>{tx.length} transactions · {accounts.length} accounts</span></div><button onClick={download}>Export</button></div><div className="empty-card">Your finance data is stored in your private Cloudflare KV space. Keep a backup file as an extra safety layer.</div></section>}
 
 function Backup({data,refresh}:{data:any,refresh:()=>Promise<void>}){const inputId="cashflow-backup-input";const downloadBackup=()=>{const payload={app:"Personal Cash Flow Manager",version:1,exportedAt:new Date().toISOString(),data:{transactions:data.transactions,accounts:data.accounts,clients:data.clients,loans:data.loans,borrowings:data.borrowings,recurring:data.recurring}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`cashflow-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};const importBackup=async(file:File)=>{try{const payload=JSON.parse(await file.text());const d=payload?.data;if(!d||!Array.isArray(d.transactions)||!Array.isArray(d.accounts)||!Array.isArray(d.clients)||!Array.isArray(d.loans)||!Array.isArray(d.borrowings)||!Array.isArray(d.recurring))throw new Error("Invalid backup file");for(const store of STORES){const values=d[store]||[];for(const value of values)await put(store,value)}await refresh();alert("Backup restored successfully.")}catch(e){alert("This backup file is not valid.")}};return <section className="content page"><div className="page-title"><FileText/><div><h2>Backup & Restore</h2><p>Protect your finance data stored in the cloud.</p></div></div><div className="report-card"><Download size={22}/><div><strong>Export full backup</strong><span>All transactions, accounts, clients, loans and recurring payments</span></div><button onClick={downloadBackup}>Backup</button></div><div className="report-card"><Upload size={22}/><div><strong>Restore backup</strong><span>Import a previously exported JSON backup</span></div><input id={inputId} type="file" accept="application/json,.json" hidden onChange={e=>{const file=e.target.files?.[0];if(file)importBackup(file);e.currentTarget.value=""}}/><button onClick={()=>document.getElementById(inputId)?.click()}>Restore</button></div><div className="empty-card"><strong>Important:</strong> Keep the downloaded backup file somewhere safe. Your cloud data remains available across devices; keep this file as an additional safety backup.</div></section>}
 
-function More({onNavigate}:{onNavigate:(x:string)=>void}){const items=[["accounts","Accounts",Wallet],["clients","Clients & Receivables",BriefcaseBusiness],["loans","Kadam Koduthathu",HandCoins],["borrowings","Kadam Vangiyath",HandCoins],["recurring","Recurring Payments",CalendarDays],["reports","Reports & Export",FileText],["analytics","Analytics",BarChart3],["backup","Backup & Restore",Download]] as any[];return <section className="content page"><div className="page-title"><Settings/><div><h2>More</h2><p>Manage the different parts of your cash flow.</p></div></div><div className="menu-list">{items.map(([id,label,Icon])=><button key={id} onClick={()=>onNavigate(id)}><Icon size={19}/><span>{label}</span><ChevronRight size={16}/></button>)}</div></section>}
+function More({onNavigate,user,onLogout}:{onNavigate:(x:string)=>void;user:any;onLogout:()=>Promise<void>}){const items=[["accounts","Accounts",Wallet],["clients","Clients & Receivables",BriefcaseBusiness],["loans","Kadam Koduthathu",HandCoins],["borrowings","Kadam Vangiyath",HandCoins],["recurring","Recurring Payments",CalendarDays],["reports","Reports & Export",FileText],["analytics","Analytics",BarChart3],["backup","Backup & Restore",Download]] as any[];return <section className="content page"><div className="page-title"><Settings/><div><h2>More</h2><p>Manage the different parts of your cash flow.</p></div></div><div className="account-card"><div className="account-avatar"><Mail size={17}/></div><div><strong>Signed in</strong><span>{user?.email||"Your account"}</span></div><button onClick={onLogout}><LogOut size={16}/></button></div><div className="menu-list">{items.map(([id,label,Icon])=><button key={id} onClick={()=>onNavigate(id)}><Icon size={19}/><span>{label}</span><ChevronRight size={16}/></button>)}</div></section>}
 
 function TxRow({t,onDelete}:{t:Transaction,onDelete?:(id:string)=>void}){const positive=["income","clientPayment","loanRepayment"].includes(t.type);return <div className="transaction"><div className={`tx-icon ${positive?"income":"expense"}`}>{positive?<ArrowDownLeft size={18}/>:<ArrowUpRight size={18}/>}</div><div className="tx-main"><strong>{t.title}</strong><span>{t.category} · {t.account} · {t.date}</span></div><div className="tx-right"><strong className={positive?"positive":"negative"}>{positive?"+":"-"}{money(t.amount)}</strong>{onDelete&&<button className="delete-btn" onClick={()=>onDelete(t.id)}><Trash2 size={14}/></button>}</div></div>}
 
