@@ -2,246 +2,102 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
-  ArrowDownLeft, ArrowUpRight, BarChart3, Bell, BriefcaseBusiness,
-  HandCoins, Home, Plus, ReceiptText, Settings, Wallet, X, Trash2
+  ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BarChart3, Bell, BriefcaseBusiness,
+  CalendarDays, ChevronRight, CreditCard, Download, FileText, HandCoins, Home,
+  Plus, ReceiptText, Search, Settings, Trash2, Wallet, X
 } from "lucide-react";
 
-type TxType = "income" | "expense" | "transfer";
+type TxType = "income" | "expense" | "transfer" | "clientPayment" | "loanGiven" | "loanRepayment";
 type Transaction = {
-  id: string;
-  title: string;
-  category: string;
-  account: string;
-  amount: number;
-  type: TxType;
-  date: string;
-  note?: string;
+  id:string; type:TxType; title:string; category:string; account:string; toAccount?:string;
+  amount:number; date:string; note?:string; clientId?:string; loanId?:string;
 };
+type Account = {id:string; name:string; type:string; opening:number};
+type Client = {id:string; name:string; project:string; billed:number; received:number; dueDate:string; notes?:string};
+type Loan = {id:string; person:string; amount:number; repaid:number; date:string; account:string; purpose:string; expectedDate:string};
+type Recurring = {id:string; title:string; amount:number; category:string; account:string; nextDate:string; frequency:string};
 
-const DB_NAME = "cashflow-manager";
-const STORE = "transactions";
-const CATEGORIES = ["Food", "Transport", "Shopping", "Bills", "Rent", "Subscriptions", "Entertainment", "Personal", "Other"];
-const ACCOUNTS = ["Cash", "Bank account", "Credit card", "UPI", "Wallet"];
+const DB_NAME="cashflow-manager"; const DB_VERSION=2;
+const STORES=["transactions","accounts","clients","loans","recurring"];
+const CATEGORIES=["Food","Transport","Shopping","Bills","Rent","Subscriptions","Entertainment","Personal","Other"];
+const ACCOUNT_TYPES=["Cash","Bank account","Credit card","UPI","Wallet"];
 
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        const store = db.createObjectStore(STORE, { keyPath: "id" });
-        store.createIndex("date", "date");
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+function openDb():Promise<IDBDatabase>{return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=()=>{const db=r.result;STORES.forEach(s=>{if(!db.objectStoreNames.contains(s))db.createObjectStore(s,{keyPath:"id"})})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+async function all<T>(store:string):Promise<T[]>{const db=await openDb();return new Promise((res,rej)=>{const q=db.transaction(store,"readonly").objectStore(store).getAll();q.onsuccess=()=>res(q.result as T[]);q.onerror=()=>rej(q.error)})}
+async function put(store:string,value:any){const db=await openDb();return new Promise<void>((res,rej)=>{const q=db.transaction(store,"readwrite").objectStore(store).put(value);q.onsuccess=()=>res();q.onerror=()=>rej(q.error)})}
+async function del(store:string,id:string){const db=await openDb();return new Promise<void>((res,rej)=>{const q=db.transaction(store,"readwrite").objectStore(store).delete(id);q.onsuccess=()=>res();q.onerror=()=>rej(q.error)})}
+const uid=()=>crypto.randomUUID(); const today=()=>new Date().toISOString().slice(0,10);
+const money=(n:number)=>`₹${Math.abs(n).toLocaleString("en-IN")}`;
+const signed=(n:number)=>`${n>=0?"+":"-"}${money(n)}`;
+
+export default function HomePage(){
+  const [tab,setTab]=useState("home"),[showAdd,setShowAdd]=useState(false),[sub,setSub]=useState(""),[data,setData]=useState<any>({transactions:[],accounts:[],clients:[],loans:[],recurring:[]}),[ready,setReady]=useState(false);
+  const refresh=async()=>{const [transactions,accounts,clients,loans,recurring]=await Promise.all(STORES.map(s=>all<any>(s)));setData({transactions,accounts,clients,loans,recurring});setReady(true)};
+  useEffect(()=>{refresh()},[]);
+  const tx:Transaction[]=data.transactions;
+  const month=today().slice(0,7), mt=tx.filter(t=>t.date.startsWith(month));
+  const totals=useMemo(()=>({income:mt.filter(t=>["income","clientPayment"].includes(t.type)).reduce((s,t)=>s+t.amount,0),expense:mt.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0)}),[mt]);
+  const balance=useMemo(()=>tx.reduce((s,t)=>{if(["income","clientPayment","loanRepayment"].includes(t.type))return s+t.amount;if(["expense","loanGiven"].includes(t.type))return s-t.amount;if(t.type==="transfer")return s;return s},0),[tx]);
+  const clientPending=data.clients.reduce((s:(number),c:Client)=>s+Math.max(0,c.billed-c.received),0);
+  const loanPending=data.loans.reduce((s:number,l:Loan)=>s+Math.max(0,l.amount-l.repaid),0);
+  const saveTx=async(t:Transaction)=>{await put("transactions",t); if(t.type==="clientPayment"&&t.clientId){const c=data.clients.find((x:Client)=>x.id===t.clientId);if(c)await put("clients",{...c,received:c.received+t.amount})} if(t.type==="loanRepayment"&&t.loanId){const l=data.loans.find((x:Loan)=>x.id===t.loanId);if(l)await put("loans",{...l,repaid:l.repaid+t.amount})} await refresh();setShowAdd(false)};
+  const page=tab==="home"?<Dashboard {...{balance,totals,clientPending,loanPending,tx,setTab,setShowAdd}}/>:
+    tab==="transactions"?<Transactions tx={tx} onDelete={async(id)=>{await del("transactions",id);await refresh()}}/>:
+    tab==="accounts"?<Accounts accounts={data.accounts} tx={tx} refresh={refresh}/>:
+    tab==="clients"?<Clients clients={data.clients} tx={tx} refresh={refresh}/>:
+    tab==="loans"?<Loans loans={data.loans} tx={tx} refresh={refresh}/>:
+    tab==="recurring"?<Recurring items={data.recurring} refresh={refresh}/>:
+    tab==="analytics"?<Analytics tx={tx}/>:
+    tab==="reports"?<Reports tx={tx} accounts={data.accounts}/>:
+    <More onNavigate={setTab}/>;
+  if(!ready)return <main className="app-shell"><div className="loading">Loading your finance data…</div></main>;
+  return <main className="app-shell">
+    <header className="topbar"><div><p className="eyebrow">PERSONAL FINANCE</p><h1>{tab==="home"?"Good evening":tab==="clients"?"Clients & Receivables":tab==="loans"?"Friends & Loans":tab[0].toUpperCase()+tab.slice(1)}</h1></div><button className="icon-btn"><Bell size={19}/></button></header>
+    {page}
+    <button className="fab" onClick={()=>setShowAdd(true)}><Plus size={25}/></button>
+    <nav className="bottom-nav"><Nav icon={<Home/>} label="Home" active={tab==="home"} onClick={()=>{setTab("home");setSub("")}}/><Nav icon={<ReceiptText/>} label="Transactions" active={tab==="transactions"} onClick={()=>setTab("transactions")}/><div/><Nav icon={<BarChart3/>} label="Analytics" active={tab==="analytics"} onClick={()=>setTab("analytics")}/><Nav icon={<Settings/>} label="More" active={tab==="more"} onClick={()=>setTab("more")}/></nav>
+    {showAdd&&<AddTransaction {...{data,onClose:()=>setShowAdd(false),onSave:saveTx}}/>}
+  </main>
 }
 
-async function readTransactions(): Promise<Transaction[]> {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const request = db.transaction(STORE, "readonly").objectStore(STORE).getAll();
-    request.onsuccess = () => resolve((request.result as Transaction[]).sort((a, b) => b.date.localeCompare(a.date)));
-    request.onerror = () => reject(request.error);
-  });
-}
+function Dashboard({balance,totals,clientPending,loanPending,tx,setTab,setShowAdd}:any){return <section className="content">
+  <div className="balance-card"><div><span className="muted">Current balance</span><strong>{money(balance)}</strong></div><Wallet size={28}/></div>
+  <div className="stats-grid"><Stat title="Income" value={money(totals.income)} note="This month" cls="positive"/><Stat title="Spending" value={money(totals.expense)} note="This month" cls="negative"/><div className="stat-card wide"><span>Net cash flow</span><strong>{signed(totals.income-totals.expense)}</strong><small>This month</small></div></div>
+  <div className="section-head"><h2>Money to receive</h2></div><div className="receive-grid">
+    <button className="receive-card" onClick={()=>setTab("clients")}><BriefcaseBusiness size={20}/><span>Client receivables</span><strong>{money(clientPending)}</strong><small>Pending from clients</small></button>
+    <button className="receive-card" onClick={()=>setTab("loans")}><HandCoins size={20}/><span>Friends' loans</span><strong>{money(loanPending)}</strong><small>Outstanding loans</small></button>
+  </div>
+  <div className="section-head"><h2>Upcoming payments</h2><button onClick={()=>setTab("recurring")}>Manage</button></div>
+  <div className="upcoming">{tx.length===0?<div className="empty-state">No transactions yet. Tap + to start.</div>:<div className="upcoming-row"><CalendarDays size={18}/><div><strong>Recurring payments</strong><span>Track rent, subscriptions and bills</span></div><ChevronRight size={17}/></div>}</div>
+  <div className="section-head"><h2>Recent transactions</h2><button onClick={()=>setTab("transactions")}>View all</button></div>
+  <div className="transaction-list">{tx.length===0?<div className="empty-state">Your transactions will appear here.</div>:tx.sort((a:Transaction,b:Transaction)=>b.date.localeCompare(a.date)).slice(0,8).map((t:Transaction)=><TxRow key={t.id} t={t}/>)}</div>
+</section>}
 
-async function saveTransaction(tx: Transaction) {
-  const db = await openDb();
-  return new Promise<void>((resolve, reject) => {
-    const request = db.transaction(STORE, "readwrite").objectStore(STORE).put(tx);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
+function Stat({title,value,note,cls}:{title:string,value:string,note:string,cls:string}){return <div className="stat-card"><span>{title}</span><strong className={cls}>{value}</strong><small>{note}</small></div>}
 
-async function removeTransaction(id: string) {
-  const db = await openDb();
-  return new Promise<void>((resolve, reject) => {
-    const request = db.transaction(STORE, "readwrite").objectStore(STORE).delete(id);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
+function Transactions({tx,onDelete}:{tx:Transaction[],onDelete:(id:string)=>void}){const [q,setQ]=useState(""),[filter,setFilter]=useState("all"),[cat,setCat]=useState(""),[account,setAccount]=useState("");
+ const list=tx.filter(t=>(filter==="all"||t.type===filter)&&(t.title.toLowerCase().includes(q.toLowerCase())||t.category.toLowerCase().includes(q.toLowerCase()))&&(!cat||t.category===cat)&&(!account||t.account===account));
+ return <section className="content page"><div className="page-title"><ReceiptText/><div><h2>Transactions</h2><p>Search and filter your money activity.</p></div></div><div className="search"><Search size={16}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search transactions"/></div><div className="chips">{["all","income","expense","transfer"].map(x=><button className={filter===x?"chip active":"chip"} onClick={()=>setFilter(x)} key={x}>{x[0].toUpperCase()+x.slice(1)}</button>)}</div><div className="filter-row"><select value={cat} onChange={e=>setCat(e.target.value)}><option value="">All categories</option>{CATEGORIES.map(x=><option key={x}>{x}</option>)}</select><select value={account} onChange={e=>setAccount(e.target.value)}><option value="">All accounts</option>{[...new Set(tx.map(t=>t.account))].map(x=><option key={x}>{x}</option>)}</select></div><div className="transaction-list">{list.length?list.sort((a,b)=>b.date.localeCompare(a.date)).map(t=><TxRow key={t.id} t={t} onDelete={onDelete}/>):<div className="empty-state">No matching transactions.</div>}</div></section>}
 
-const money = (n: number) => `₹${Math.abs(n).toLocaleString("en-IN")}`;
+function Accounts({accounts,tx,refresh}:{accounts:Account[],tx:Transaction[],refresh:()=>void}){const [name,setName]=useState(""),[type,setType]=useState("Bank account"),[opening,setOpening]=useState("");const balances=accounts.map(a=>{const b=tx.filter(t=>t.account===a.name).reduce((s,t)=>{if(["income","clientPayment","loanRepayment"].includes(t.type))return s+t.amount;if(["expense","loanGiven"].includes(t.type))return s-t.amount;return s},a.opening);return {...a,b}});return <section className="content page"><div className="page-title"><Wallet/><div><h2>Accounts</h2><p>Cash, banks, cards, UPI and wallets.</p></div></div><div className="form-card inline-form"><input value={name} onChange={e=>setName(e.target.value)} placeholder="Account name"/><select value={type} onChange={e=>setType(e.target.value)}>{ACCOUNT_TYPES.map(x=><option key={x}>{x}</option>)}</select><input inputMode="decimal" value={opening} onChange={e=>setOpening(e.target.value)} placeholder="Opening balance"/><button onClick={async()=>{if(!name.trim())return;await put("accounts",{id:uid(),name:name.trim(),type,opening:Number(opening)||0});setName("");setOpening("");refresh()}}>Add account</button></div><div className="cards">{balances.length?balances.map(a=><div className="data-card" key={a.id}><div className="data-icon"><CreditCard size={18}/></div><div><strong>{a.name}</strong><span>{a.type}</span></div><b>{money(a.b)}</b><button onClick={()=>del("accounts",a.id).then(refresh)}><Trash2 size={15}/></button></div>):<div className="empty-card">Add your first account above.</div>}</div></section>}
 
-export default function HomePage() {
-  const [tab, setTab] = useState("home");
-  const [showAdd, setShowAdd] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+function Clients({clients,tx,refresh}:{clients:Client[],tx:Transaction[],refresh:()=>void}){const [show,setShow]=useState(false);return <section className="content page"><div className="section-head first"><h2>Client Receivables</h2><button className="small-add" onClick={()=>setShow(true)}><Plus size={15}/> Client</button></div><p>Track billed, received, pending and due dates.</p><div className="cards">{clients.length?clients.map(c=><div className="data-card stack" key={c.id}><div className="data-top"><div><strong>{c.name}</strong><span>{c.project||"Project / invoice"}</span></div><b>{money(Math.max(0,c.billed-c.received))} pending</b></div><div className="mini-grid"><span>Billed<strong>{money(c.billed)}</strong></span><span>Received<strong>{money(c.received)}</strong></span><span>Due<strong>{c.dueDate||"—"}</strong></span></div><button className="link-btn" onClick={()=>setShow(true)}>Add / edit payment</button></div>):<div className="empty-card">No clients yet. Add an invoice/client above.</div>}</div>{show&&<ClientForm onClose={()=>setShow(false)} onSave={async c=>{await put("clients",c);await refresh();setShow(false)}}/>}</section>}
 
-  const refresh = async () => {
-    try {
-      setTransactions(await readTransactions());
-    } finally {
-      setLoading(false);
-    }
-  };
+function Loans({loans,tx,refresh}:{loans:Loan[],tx:Transaction[],refresh:()=>void}){const [show,setShow]=useState(false);return <section className="content page"><div className="section-head first"><h2>Friends' Loans</h2><button className="small-add" onClick={()=>setShow(true)}><Plus size={15}/> Loan</button></div><p>Loan given is tracked as receivable, not an expense.</p><div className="cards">{loans.length?loans.map(l=><div className="data-card stack" key={l.id}><div className="data-top"><div><strong>{l.person}</strong><span>{l.purpose||"Personal loan"}</span></div><b>{money(Math.max(0,l.amount-l.repaid))}</b></div><div className="mini-grid"><span>Given<strong>{money(l.amount)}</strong></span><span>Repaid<strong>{money(l.repaid)}</strong></span><span>Expected<strong>{l.expectedDate||"—"}</strong></span></div><button className="link-btn" onClick={()=>setShow(true)}>Add repayment</button></div>):<div className="empty-card">No loans yet.</div>}</div>{show&&<LoanForm onClose={()=>setShow(false)} onSave={async l=>{await put("loans",l);await refresh();setShow(false)}}/>}</section>}
 
-  useEffect(() => { refresh(); }, []);
+function Recurring({items,refresh}:{items:Recurring[],refresh:()=>void}){const [title,setTitle]=useState(""),[amount,setAmount]=useState(""),[nextDate,setNextDate]=useState(today());return <section className="content page"><div className="page-title"><CalendarDays/><div><h2>Recurring Payments</h2><p>Rent, subscriptions, bills and regular payments.</p></div></div><div className="form-card inline-form"><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Payment name"/><input inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Amount"/><input type="date" value={nextDate} onChange={e=>setNextDate(e.target.value)}/><button onClick={async()=>{if(!title||!amount)return;await put("recurring",{id:uid(),title,amount:Number(amount),category:"Bills",account:"Bank account",nextDate,frequency:"Monthly"});setTitle("");setAmount("");refresh()}}>Add payment</button></div><div className="cards">{items.map(x=><div className="data-card" key={x.id}><div><strong>{x.title}</strong><span>{money(x.amount)} · {x.frequency} · next {x.nextDate}</span></div><button onClick={()=>del("recurring",x.id).then(refresh)}><Trash2 size={15}/></button></div>)}{!items.length&&<div className="empty-card">No recurring payments yet.</div>}</div></section>}
 
-  const monthKey = new Date().toISOString().slice(0, 7);
-  const monthTransactions = transactions.filter(t => t.date.startsWith(monthKey));
+function Analytics({tx}:{tx:Transaction[]}){const expenses=tx.filter(t=>t.type==="expense"),income=tx.filter(t=>["income","clientPayment"].includes(t.type));const totalE=expenses.reduce((s,t)=>s+t.amount,0),totalI=income.reduce((s,t)=>s+t.amount,0);const cats=CATEGORIES.map(c=>({c,n:expenses.filter(t=>t.category===c).reduce((s,t)=>s+t.amount,0)})).filter(x=>x.n).sort((a,b)=>b.n-a.n);return <section className="content page"><div className="page-title"><BarChart3/><div><h2>Analytics</h2><p>Understand your income, spending and cash flow.</p></div></div><div className="stats-grid"><Stat title="Total income" value={money(totalI)} note="All time" cls="positive"/><Stat title="Total spending" value={money(totalE)} note="All time" cls="negative"/></div><div className="chart-card"><h3>Spending by category</h3>{cats.length?cats.map(x=><div className="bar-row" key={x.c}><span>{x.c}</span><div><i style={{width:`${totalE?Math.max(5,x.n/totalE*100):0}%`}}/></div><b>{money(x.n)}</b></div>):<div className="empty-state">Add expenses to see your breakdown.</div>}</div><div className="chart-card"><h3>Cash-flow trend</h3><div className="trend"><div><span>Income</span><b>{money(totalI)}</b></div><div><span>Spending</span><b>{money(totalE)}</b></div><div><span>Net</span><b>{signed(totalI-totalE)}</b></div></div></div></section>}
 
-  const totals = useMemo(() => {
-    const income = monthTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
-    const expense = monthTransactions.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
-    return { income, expense, net: income - expense };
-  }, [monthTransactions]);
+function Reports({tx,accounts}:{tx:Transaction[],accounts:Account[]}){const download=()=>{const rows=[["Date","Type","Title","Category","Account","Amount","Note"],...tx.map(t=>[t.date,t.type,t.title,t.category,t.account,t.amount,t.note||""])];const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`cashflow-report-${today()}.csv`;a.click();URL.revokeObjectURL(a.href)};return <section className="content page"><div className="page-title"><FileText/><div><h2>Reports</h2><p>Export your local finance data whenever you need it.</p></div></div><div className="report-card"><Download size={22}/><div><strong>Transactions CSV</strong><span>{tx.length} transactions · {accounts.length} accounts</span></div><button onClick={download}>Export</button></div><div className="empty-card">Your data stays on this device. Export regularly if you want a backup.</div></section>}
 
-  const currentBalance = useMemo(
-    () => transactions.reduce((s, t) => t.type === "income" ? s + t.amount : t.type === "expense" ? s - Math.abs(t.amount) : s, 0),
-    [transactions]
-  );
+function More({onNavigate}:{onNavigate:(x:string)=>void}){const items=[["accounts","Accounts",Wallet],["clients","Clients & Receivables",BriefcaseBusiness],["loans","Friends & Loans",HandCoins],["recurring","Recurring Payments",CalendarDays],["reports","Reports & Export",FileText],["analytics","Analytics",BarChart3]] as any[];return <section className="content page"><div className="page-title"><Settings/><div><h2>More</h2><p>Manage the different parts of your cash flow.</p></div></div><div className="menu-list">{items.map(([id,label,Icon])=><button key={id} onClick={()=>onNavigate(id)}><Icon size={19}/><span>{label}</span><ChevronRight size={16}/></button>)}</div></section>}
 
-  const add = async (tx: Transaction) => {
-    await saveTransaction(tx);
-    await refresh();
-    setShowAdd(false);
-  };
+function TxRow({t,onDelete}:{t:Transaction,onDelete?:(id:string)=>void}){const positive=["income","clientPayment","loanRepayment"].includes(t.type);return <div className="transaction"><div className={`tx-icon ${positive?"income":"expense"}`}>{positive?<ArrowDownLeft size={18}/>:<ArrowUpRight size={18}/>}</div><div className="tx-main"><strong>{t.title}</strong><span>{t.category} · {t.account} · {t.date}</span></div><div className="tx-right"><strong className={positive?"positive":"negative"}>{positive?"+":"-"}{money(t.amount)}</strong>{onDelete&&<button className="delete-btn" onClick={()=>onDelete(t.id)}><Trash2 size={14}/></button>}</div></div>}
 
-  const deleteTx = async (id: string) => {
-    await removeTransaction(id);
-    await refresh();
-  };
+function AddTransaction({data,onClose,onSave}:{data:any,onClose:()=>void,onSave:(t:Transaction)=>Promise<void>}){const [type,setType]=useState<TxType>("expense"),[title,setTitle]=useState(""),[amount,setAmount]=useState(""),[category,setCategory]=useState("Food"),[account,setAccount]=useState(data.accounts[0]?.name||"Cash"),[toAccount,setToAccount]=useState(""),[date,setDate]=useState(today()),[note,setNote]=useState(""),[clientId,setClientId]=useState(""),[loanId,setLoanId]=useState(""),[saving,setSaving]=useState(false);const submit=async(e:FormEvent)=>{e.preventDefault();const v=Number(amount);if(!v||!title.trim())return;setSaving(true);await onSave({id:uid(),type,title:title.trim(),category:type==="income"||type==="clientPayment"?"Income":type==="transfer"?"Transfer":category,account,toAccount,amount:v,date,note,clientId,loanId});setSaving(false)};return <div className="modal-backdrop" onClick={onClose}><form className="sheet form-sheet" onSubmit={submit} onClick={e=>e.stopPropagation()}><div className="sheet-top"><div className="sheet-handle"/><button type="button" className="close-btn" onClick={onClose}><X size={18}/></button></div><h2>Add transaction</h2><div className="type-tabs">{[["expense","Expense",ArrowUpRight],["income","Income",ArrowDownLeft],["transfer","Transfer",ArrowLeftRight],["clientPayment","Client payment",BriefcaseBusiness],["loanGiven","Loan given",HandCoins],["loanRepayment","Loan repayment",HandCoins]].map(([v,l,I]:any)=><button type="button" className={type===v?"selected":""} onClick={()=>setType(v)} key={v}><I size={16}/>{l}</button>)}</div><label>Amount<input inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0"/></label><label>Title<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="What was this for?"/></label>{type==="expense"&&<label>Category<select value={category} onChange={e=>setCategory(e.target.value)}>{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></label>}{type==="clientPayment"&&<label>Client<select value={clientId} onChange={e=>setClientId(e.target.value)}><option value="">Select client</option>{data.clients.map((c:Client)=><option value={c.id} key={c.id}>{c.name}</option>)}</select></label>}{type==="loanRepayment"&&<label>Loan<select value={loanId} onChange={e=>setLoanId(e.target.value)}><option value="">Select person</option>{data.loans.map((l:Loan)=><option value={l.id} key={l.id}>{l.person}</option>)}</select></label>}{type==="transfer"&&<label>To account<select value={toAccount} onChange={e=>setToAccount(e.target.value)}>{data.accounts.map((a:Account)=><option key={a.id}>{a.name}</option>)}</select></label>}<label>Account<select value={account} onChange={e=>setAccount(e.target.value)}>{data.accounts.map((a:Account)=><option key={a.id}>{a.name}</option>)}{!data.accounts.length&&<option>Cash</option>}</select></label><label>Date<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label><label>Note <span className="optional">(optional)</span><input value={note} onChange={e=>setNote(e.target.value)} placeholder="Add a note"/></label><button className="save-btn" disabled={saving}>{saving?"Saving…":"Save transaction"}</button></form></div>}
 
-  return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">PERSONAL FINANCE</p>
-          <h1>{tab === "home" ? "Good evening" : tab[0].toUpperCase() + tab.slice(1)}</h1>
-        </div>
-        <button className="icon-btn" aria-label="Notifications"><Bell size={20}/></button>
-      </header>
-
-      {tab === "home" && (
-        <section className="content">
-          <div className="balance-card">
-            <div>
-              <span className="muted">Current balance</span>
-              <strong>{money(currentBalance)}</strong>
-            </div>
-            <Wallet size={28}/>
-          </div>
-
-          <div className="stats-grid">
-            <div className="stat-card"><span>Income</span><strong className="positive">{money(totals.income)}</strong><small>This month</small></div>
-            <div className="stat-card"><span>Spending</span><strong className="negative">{money(totals.expense)}</strong><small>This month</small></div>
-            <div className="stat-card wide"><span>Net cash flow</span><strong>{totals.net >= 0 ? "+" : "-"}{money(totals.net)}</strong><small>This month</small></div>
-          </div>
-
-          <div className="section-head"><h2>Money to receive</h2><button onClick={() => setTab("receivables")}>View all</button></div>
-          <div className="receive-grid">
-            <button className="receive-card" onClick={() => setTab("receivables")}><BriefcaseBusiness size={20}/><span>Client receivables</span><strong>₹0</strong><small>Add client invoices later</small></button>
-            <button className="receive-card" onClick={() => setTab("loans")}><HandCoins size={20}/><span>Friends' loans</span><strong>₹0</strong><small>Add loans later</small></button>
-          </div>
-
-          <div className="section-head"><h2>Recent transactions</h2><button onClick={() => setTab("transactions")}>View all</button></div>
-          <div className="transaction-list">
-            {loading ? <div className="empty-state">Loading your local data…</div> : transactions.length === 0 ? (
-              <div className="empty-state">No transactions yet. Tap + to add your first one.</div>
-            ) : transactions.slice(0, 8).map(t => <TransactionRow key={t.id} t={t} onDelete={deleteTx}/>)}
-          </div>
-        </section>
-      )}
-
-      {tab === "transactions" && (
-        <section className="content page">
-          <div className="page-head"><div><div className="page-icon"><ReceiptText/></div><h2>Transactions</h2></div><button className="small-add" onClick={() => setShowAdd(true)}><Plus size={16}/> Add</button></div>
-          <p>All your income and expenses are stored locally on this device.</p>
-          <div className="transaction-list">
-            {transactions.length === 0 ? <div className="empty-state">No transactions yet.</div> : transactions.map(t => <TransactionRow key={t.id} t={t} onDelete={deleteTx}/>)}
-          </div>
-        </section>
-      )}
-
-      {tab === "accounts" && <SimplePage title="Accounts" icon={<Wallet/>} text="Account tracking will be connected to the transaction engine next." />}
-      {tab === "receivables" && <SimplePage title="Client Receivables" icon={<BriefcaseBusiness/>} text="Client invoices and payment history are planned for the next build step." />}
-      {tab === "loans" && <SimplePage title="Friends' Loans" icon={<HandCoins/>} text="Loan balances and repayments are planned for the next build step." />}
-      {tab === "analytics" && <SimplePage title="Analytics" icon={<BarChart3/>} text="Charts and category analysis will use your saved local transactions." />}
-
-      <button className="fab" onClick={() => setShowAdd(true)} aria-label="Add transaction"><Plus size={25}/></button>
-
-      <nav className="bottom-nav">
-        <Nav icon={<Home/>} label="Home" active={tab === "home"} onClick={() => setTab("home")}/>
-        <Nav icon={<ReceiptText/>} label="Transactions" active={tab === "transactions"} onClick={() => setTab("transactions")}/>
-        <div className="nav-spacer"/>
-        <Nav icon={<BarChart3/>} label="Analytics" active={tab === "analytics"} onClick={() => setTab("analytics")}/>
-        <Nav icon={<Settings/>} label="More" active={false} onClick={() => setTab("accounts")}/>
-      </nav>
-
-      {showAdd && <AddTransaction onClose={() => setShowAdd(false)} onSave={add}/>}
-    </main>
-  );
-}
-
-function TransactionRow({ t, onDelete }: { t: Transaction; onDelete: (id: string) => void }) {
-  return (
-    <div className="transaction">
-      <div className={`tx-icon ${t.type}`}>{t.type === "income" ? <ArrowDownLeft size={18}/> : <ArrowUpRight size={18}/>}</div>
-      <div className="tx-main"><strong>{t.title}</strong><span>{t.category} · {t.account} · {t.date}</span></div>
-      <div className="tx-right"><strong className={t.amount > 0 ? "positive" : "negative"}>{t.amount > 0 ? "+" : "-"}{money(t.amount)}</strong><button className="delete-btn" onClick={() => onDelete(t.id)} aria-label="Delete transaction"><Trash2 size={14}/></button></div>
-    </div>
-  );
-}
-
-function AddTransaction({ onClose, onSave }: { onClose: () => void; onSave: (tx: Transaction) => Promise<void> }) {
-  const [type, setType] = useState<TxType>("expense");
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("Food");
-  const [account, setAccount] = useState("Bank account");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [note, setNote] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const value = Number(amount);
-    if (!title.trim() || !Number.isFinite(value) || value <= 0) return;
-    setSaving(true);
-    await onSave({
-      id: crypto.randomUUID(),
-      title: title.trim(),
-      category: type === "income" ? "Income" : category,
-      account,
-      amount: type === "expense" ? -value : value,
-      type,
-      date,
-      note: note.trim()
-    });
-  };
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <form className="sheet form-sheet" onSubmit={submit} onClick={e => e.stopPropagation()}>
-        <div className="sheet-top"><div className="sheet-handle"/><button type="button" className="close-btn" onClick={onClose}><X size={19}/></button></div>
-        <h2>Add transaction</h2>
-        <div className="type-tabs">
-          <button type="button" className={type === "expense" ? "selected" : ""} onClick={() => setType("expense")}><ArrowUpRight size={17}/> Expense</button>
-          <button type="button" className={type === "income" ? "selected" : ""} onClick={() => setType("income")}><ArrowDownLeft size={17}/> Income</button>
-          <button type="button" className={type === "transfer" ? "selected" : ""} onClick={() => setType("transfer")}><ArrowDownLeft size={17}/> Transfer</button>
-        </div>
-        <label>Amount<input inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" autoFocus/></label>
-        <label>Title<input value={title} onChange={e => setTitle(e.target.value)} placeholder={type === "expense" ? "e.g. Groceries" : "e.g. Salary"}/></label>
-        {type !== "income" && <label>Category<select value={category} onChange={e => setCategory(e.target.value)}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label>}
-        <label>Account<select value={account} onChange={e => setAccount(e.target.value)}>{ACCOUNTS.map(a => <option key={a}>{a}</option>)}</select></label>
-        <label>Date<input type="date" value={date} onChange={e => setDate(e.target.value)}/></label>
-        <label>Note <span className="optional">(optional)</span><input value={note} onChange={e => setNote(e.target.value)} placeholder="Add a note"/></label>
-        <button className="save-btn" disabled={saving}>{saving ? "Saving…" : "Save transaction"}</button>
-      </form>
-    </div>
-  );
-}
-
-function Nav({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
-  return <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}>{icon}<span>{label}</span></button>;
-}
-
-function SimplePage({ title, icon, text }: { title: string; icon: React.ReactNode; text: string }) {
-  return <section className="content page"><div className="page-icon">{icon}</div><h2>{title}</h2><p>{text}</p><div className="empty-card">This module is ready for the next build step.</div></section>;
-}
+function ClientForm({onClose,onSave}:{onClose:()=>void,onSave:(c:Client)=>Promise<void>}){const [name,setName]=useState(""),[project,setProject]=useState(""),[billed,setBilled]=useState(""),[dueDate,setDueDate]=useState(today());return <Modal title="Add client" onClose={onClose}><label>Client name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Project / invoice<input value={project} onChange={e=>setProject(e.target.value)}/></label><label>Billed amount<input inputMode="decimal" value={billed} onChange={e=>setBilled(e.target.value)}/></label><label>Due date<input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label><button className="save-btn" onClick={()=>name&&onSave({id:uid(),name,project,billed:Number(billed)||0,received:0,dueDate})}>Save client</button></Modal>}
+function LoanForm({onClose,onSave}:{onClose:()=>void,onSave:(l:Loan)=>Promise<void>}){const [person,setPerson]=useState(""),[amount,setAmount]=useState(""),[purpose,setPurpose]=useState(""),[account,setAccount]=useState("Cash"),[expectedDate,setExpectedDate]=useState(today());return <Modal title="Add loan" onClose={onClose}><label>Person<input value={person} onChange={e=>setPerson(e.target.value)}/></label><label>Amount<input inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)}/></label><label>Purpose<input value={purpose} onChange={e=>setPurpose(e.target.value)}/></label><label>Account<input value={account} onChange={e=>setAccount(e.target.value)}/></label><label>Expected repayment<input type="date" value={expectedDate} onChange={e=>setExpectedDate(e.target.value)}/></label><button className="save-btn" onClick={()=>person&&onSave({id:uid(),person,amount:Number(amount)||0,repaid:0,date:today(),account,purpose,expectedDate})}>Save loan</button></Modal>}
+function Modal({title,onClose,children}:{title:string,onClose:()=>void,children:any}){return <div className="modal-backdrop" onClick={onClose}><div className="sheet form-sheet" onClick={e=>e.stopPropagation()}><div className="sheet-top"><div className="sheet-handle"/><button className="close-btn" onClick={onClose}><X size={18}/></button></div><h2>{title}</h2>{children}</div></div>}
+function Nav({icon,label,active,onClick}:{icon:any,label:string,active:boolean,onClick:()=>void}){return <button className={`nav-item ${active?"active":""}`} onClick={onClick}>{icon}<span>{label}</span></button>}
