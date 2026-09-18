@@ -5,80 +5,111 @@ export const dynamic = "force-dynamic";
 const STORES = ["transactions", "accounts", "clients", "loans", "recurring"] as const;
 type Store = (typeof STORES)[number];
 
-type DB = { prepare: (query: string) => any };
+type KV = {
+  get: (key: string, type?: "text") => Promise<string | null>;
+  put: (key: string, value: string) => Promise<void>;
+  delete: (key: string) => Promise<void>;
+};
 
-function getDb() {
+function getKv() {
   const { env } = getCloudflareContext();
-  const db = (env as unknown as { DB?: DB }).DB;
-  if (!db) throw new Error("Cloudflare D1 binding DB is not available.");
-  return db;
-}
-
-async function ensureTable(db: DB) {
-  await db.prepare(
-    `CREATE TABLE IF NOT EXISTS app_data (
-      store TEXT PRIMARY KEY,
-      data TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    )`
-  ).run();
+  const kv = (env as unknown as { KV?: KV }).KV;
+  if (!kv) throw new Error("Cloudflare KV binding KV is not available.");
+  return kv;
 }
 
 function validStore(value: string | undefined | null): value is Store {
   return !!value && (STORES as readonly string[]).includes(value);
 }
 
+function keyFor(store: Store) {
+  return `store:${store}`;
+}
+
+async function readStore(kv: KV, store: Store) {
+  const raw = await kv.get(keyFor(store), "text");
+  if (!raw) return [];
+  const parsed = JSON.parse(raw);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+async function writeStore(kv: KV, store: Store, items: unknown[]) {
+  await kv.put(keyFor(store), JSON.stringify(items));
+}
+
 export async function GET(request: Request) {
   try {
-    const db = getDb();
-    await ensureTable(db);
+    const kv = getKv();
     const url = new URL(request.url);
     const store = url.searchParams.get("store");
-    if (!validStore(store)) return Response.json({ error: "Invalid store" }, { status: 400 });
+    if (!validStore(store)) {
+      return Response.json({ error: "Invalid store" }, { status: 400 });
+    }
 
-    const row = await db.prepare("SELECT data FROM app_data WHERE store = ?").bind(store).first() as {data:string} | null;
-    return Response.json({ data: row ? JSON.parse(row.data) : [] });
+    return Response.json({ data: await readStore(kv, store) });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    return Response.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const db = getDb();
-    await ensureTable(db);
-    const body = await request.json() as {store?: string; value?: unknown};
-    if (!validStore(body.store) || !body.value || typeof body.value !== "object") {
+    const kv = getKv();
+    const body = (await request.json()) as { store?: string; value?: unknown };
+
+    if (
+      !validStore(body.store) ||
+      !body.value ||
+      typeof body.value !== "object" ||
+      Array.isArray(body.value)
+    ) {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
-    const existing = await db.prepare("SELECT data FROM app_data WHERE store = ?").bind(body.store).first() as {data:string} | null;
-    const items = existing ? JSON.parse(existing.data) : [];
-    const index = items.findIndex((x:any) => x?.id === (body.value as any).id);
+
+    const items = await readStore(kv, body.store);
+    const value = body.value as { id?: string };
+
+    if (!value.id) {
+      return Response.json({ error: "Item id is required" }, { status: 400 });
+    }
+
+    const index = items.findIndex((item) => item?.id === value.id);
     if (index >= 0) items[index] = body.value;
     else items.push(body.value);
-    await db.prepare("INSERT INTO app_data(store,data,updated_at) VALUES(?,?,?) ON CONFLICT(store) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at")
-      .bind(body.store, JSON.stringify(items), new Date().toISOString()).run();
+
+    await writeStore(kv, body.store, items);
     return Response.json({ ok: true });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    return Response.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    const db = getDb();
-    await ensureTable(db);
+    const kv = getKv();
     const url = new URL(request.url);
     const store = url.searchParams.get("store");
     const id = url.searchParams.get("id");
-    if (!validStore(store) || !id) return Response.json({ error: "Invalid request" }, { status: 400 });
-    const row = await db.prepare("SELECT data FROM app_data WHERE store = ?").bind(store).first() as {data:string} | null;
-    if (!row) return Response.json({ ok: true });
-    const items = JSON.parse(row.data).filter((x:any) => x?.id !== id);
-    await db.prepare("INSERT INTO app_data(store,data,updated_at) VALUES(?,?,?) ON CONFLICT(store) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at")
-      .bind(store, JSON.stringify(items), new Date().toISOString()).run();
+
+    if (!validStore(store) || !id) {
+      return Response.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    const items = await readStore(kv, store);
+    const filtered = items.filter((item) => item?.id !== id);
+
+    await writeStore(kv, store, filtered);
     return Response.json({ ok: true });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    return Response.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
   }
 }
