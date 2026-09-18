@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export const dynamic = "force-dynamic";
 
-const STORES = ["transactions", "accounts", "clients", "loans", "recurring"] as const;
+const STORES = ["transactions", "accounts", "clients", "loans", "borrowings", "recurring"] as const;
 type Store = (typeof STORES)[number];
 
 type KV = {
