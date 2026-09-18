@@ -10,59 +10,14 @@ type KV = {
   put: (key: string, value: string) => Promise<void>;
 };
 
-type Env = {
-  KV?: KV;
-  SUPABASE_URL?: string;
-  SUPABASE_PUBLISHABLE_KEY?: string;
-  SUPABASE_ANON_KEY?: string;
-  NEXT_PUBLIC_SUPABASE_URL?: string;
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?: string;
-  NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
-};
+type Env = { KV?: KV };
 
-function getEnv(): Env {
-  return getCloudflareContext().env as unknown as Env;
-}
+function getEnv(): Env { return getCloudflareContext().env as unknown as Env; }
 
 function getKv(env: Env) {
   const kv = env.KV;
   if (!kv) throw new Error("Cloudflare KV binding KV is not available.");
   return kv;
-}
-
-function getSupabaseConfig(env: Env) {
-  const url = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    env.SUPABASE_PUBLISHABLE_KEY ||
-    env.SUPABASE_ANON_KEY ||
-    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !key) {
-    throw new Error("Supabase environment variables are not configured.");
-  }
-
-  return { url, key };
-}
-
-async function getAuthenticatedUserId(request: Request, env: Env) {
-  const authorization = request.headers.get("authorization");
-  if (!authorization?.startsWith("Bearer ")) return null;
-
-  const token = authorization.slice("Bearer ".length);
-  const { url, key } = getSupabaseConfig(env);
-
-  const response = await fetch(`${url}/auth/v1/user`, {
-    headers: {
-      authorization: `Bearer ${token}`,
-      apikey: key,
-    },
-  });
-
-  if (!response.ok) return null;
-
-  const user = (await response.json()) as { id?: string };
-  return user.id || null;
 }
 
 function validStore(value: string | undefined | null): value is Store {
@@ -105,7 +60,7 @@ async function readStore(kv: KV, userId: string, store: Store) {
 }
 
 async function writeStore(kv: KV, userId: string, store: Store, items: unknown[]) {
-  await kv.put(keyFor(userId, store), JSON.stringify(items));
+  await kv.put(keyFor(store), JSON.stringify(items));
 }
 
 export async function GET(request: Request) {
@@ -125,7 +80,7 @@ export async function GET(request: Request) {
       return Response.json({ error: "Invalid store" }, { status: 400 });
     }
 
-    return Response.json({ data: await readStore(kv, userId, store) });
+    return Response.json({ data: await readStore(kv, store) });
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : String(error) },
@@ -155,7 +110,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const items = await readStore(kv, userId, body.store);
+    const items = await readStore(kv, body.store);
     const value = body.value as { id?: string };
 
     if (!value.id) {
@@ -166,7 +121,7 @@ export async function POST(request: Request) {
     if (index >= 0) items[index] = body.value;
     else items.push(body.value);
 
-    await writeStore(kv, userId, body.store, items);
+    await writeStore(kv, body.store, items);
     return Response.json({ ok: true });
   } catch (error) {
     return Response.json(
@@ -194,10 +149,10 @@ export async function DELETE(request: Request) {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const items = await readStore(kv, userId, store);
+    const items = await readStore(kv, store);
     const filtered = items.filter((item) => item?.id !== id);
 
-    await writeStore(kv, userId, store, filtered);
+    await writeStore(kv, store, filtered);
     return Response.json({ ok: true });
   } catch (error) {
     return Response.json(
