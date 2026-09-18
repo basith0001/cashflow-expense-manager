@@ -6,11 +6,9 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "d1_databases": [
+  "kv_namespaces": [
     {
-      "binding": "DB",
-      "database_name": "cashflow-db",
-      "database_id": "7c3890ab-6ff6-414e-a2eb-8157ece2924a"
+      "binding": "KV"
     }
   ],
   "assets": {
