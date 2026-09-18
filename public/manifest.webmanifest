@@ -1,0 +1,9 @@
+{
+  "name": "Cashflow",
+  "short_name": "Cashflow",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f9f6",
+  "theme_color": "#183c34",
+  "description": "Personal cash-flow manager"
+}
