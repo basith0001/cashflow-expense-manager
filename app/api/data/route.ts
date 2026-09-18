@@ -14,7 +14,7 @@ function getDb() {
   return db;
 }
 
-async function ensureTable(db: D1Database) {
+async function ensureTable(db: DB) {
   await db.prepare(
     `CREATE TABLE IF NOT EXISTS app_data (
       store TEXT PRIMARY KEY,
