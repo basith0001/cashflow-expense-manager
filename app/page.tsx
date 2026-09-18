@@ -19,7 +19,7 @@ type Borrowing = {id:string; person:string; amount:number; repaid:number; date:s
 type Recurring = {id:string; title:string; amount:number; category:string; account:string; nextDate:string; frequency:string};
 
 const STORES=["transactions","accounts","clients","loans","borrowings","recurring"] as const;
-const CATEGORIES=["Food","Transport","Shopping","Bills","Rent","Subscriptions","Entertainment","Personal","Other"];
+const CATEGORIES=["Food","Fuel","Shopping","Home Expenses","Bills","Rent","Subscriptions","Entertainment","Personal","Other"];
 const ACCOUNT_TYPES=["Cash","Bank account","Credit card","UPI","Wallet"];
 
 async function apiFetch(input:RequestInfo|URL,init?:RequestInit){ return fetch(input,init); }
