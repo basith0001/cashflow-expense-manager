@@ -20,7 +20,8 @@ type Recurring = {id:string; title:string; amount:number; category:string; accou
 
 const STORES=["transactions","accounts","clients","loans","borrowings","recurring"] as const;
 const CATEGORIES=["Food","Fuel","Shopping","Home Expenses","Bills","Rent","Subscriptions","Entertainment","Personal","Other"];
-const ACCOUNT_OPTIONS=["Cash","KGB","Federal","Axis","Slice Card","ICICI Card","Axis Neo Card","Axis Privillage"];\nconst ACCOUNT_TYPES=["Cash","Bank account","Credit card","UPI","Wallet"];
+const ACCOUNT_OPTIONS=["Cash","KGB","Federal","Axis","Slice Card","ICICI Card","Axis Neo Card","Axis Privillage"];
+const ACCOUNT_TYPES=["Cash","Bank account","Credit card","UPI","Wallet"];
 
 async function apiFetch(input:RequestInfo|URL,init?:RequestInit){ return fetch(input,init); }
 async function all<T>(store:string):Promise<T[]>{const r=await apiFetch(`/api/data?store=${encodeURIComponent(store)}`,{cache:"no-store"});if(!r.ok)throw new Error("Could not load cloud data");const j=await r.json();return j.data as T[]}
