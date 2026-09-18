@@ -59,7 +59,7 @@ async function readStore(kv: KV, userId: string, store: Store) {
   return [];
 }
 
-async function writeStore(kv: KV, userId: string, store: Store, items: unknown[]) {
+async function writeStore(kv: KV, store: Store, items: unknown[]) {
   await kv.put(keyFor(store), JSON.stringify(items));
 }
 
