@@ -35,11 +35,10 @@ export default function HomePage(){
   const tx:Transaction[]=data.transactions;
   const month=today().slice(0,7), mt=tx.filter(t=>t.date.startsWith(month));
   const totals=useMemo(()=>({income:mt.filter(t=>["income","clientPayment"].includes(t.type)).reduce((s,t)=>s+t.amount,0),expense:mt.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0)}),[mt]);
-  const balance=useMemo(()=>tx.reduce((s,t)=>{if(["income","clientPayment","loanRepayment"].includes(t.type))return s+t.amount;if(["expense","loanGiven"].includes(t.type))return s-t.amount;if(t.type==="transfer")return s;return s},0),[tx]);
   const clientPending=data.clients.reduce((s:number,c:Client)=>s+Math.max(0,c.billed-c.received),0);
   const loanPending=data.loans.reduce((s:number,l:Loan)=>s+Math.max(0,l.amount-l.repaid),0);
   const saveTx=async(t:Transaction)=>{await put("transactions",t); if(t.type==="clientPayment"&&t.clientId){const c=data.clients.find((x:Client)=>x.id===t.clientId);if(c)await put("clients",{...c,received:c.received+t.amount})} if(t.type==="loanRepayment"&&t.loanId){const l=data.loans.find((x:Loan)=>x.id===t.loanId);if(l)await put("loans",{...l,repaid:l.repaid+t.amount})} await refresh();setShowAdd(false)};
-  const page=tab==="home"?<Dashboard {...{balance,totals,clientPending,loanPending,tx,setTab,setShowAdd}}/>:
+  const page=tab==="home"?<Dashboard {...{totals,clientPending,loanPending,tx,setTab,setShowAdd}}/>:
     tab==="transactions"?<Transactions tx={tx} onDelete={async(id)=>{await del("transactions",id);await refresh()}}/>:
     tab==="accounts"?<Accounts accounts={data.accounts} tx={tx} refresh={refresh}/>:
     tab==="clients"?<Clients clients={data.clients} tx={tx} refresh={refresh}/>:
@@ -59,9 +58,8 @@ export default function HomePage(){
   </main>
 }
 
-function Dashboard({balance,totals,clientPending,loanPending,tx,setTab,setShowAdd}:any){return <section className="content">
-  <div className="balance-card"><div><span className="muted">Current balance</span><strong>{money(balance)}</strong></div><Wallet size={28}/></div>
-  <div className="stats-grid"><Stat title="Income" value={money(totals.income)} note="This month" cls="positive"/><Stat title="Spending" value={money(totals.expense)} note="This month" cls="negative"/><div className="stat-card wide"><span>Net cash flow</span><strong>{signed(totals.income-totals.expense)}</strong><small>This month</small></div></div>
+function Dashboard({totals,clientPending,loanPending,tx,setTab,setShowAdd}:any){return <section className="content">
+  <div className="stats-grid income-spending-only"><Stat title="Income" value={money(totals.income)} note="This month" cls="positive"/><Stat title="Spending" value={money(totals.expense)} note="This month" cls="negative"/></div>
   <div className="section-head"><h2>Money to receive</h2></div><div className="receive-grid">
     <button className="receive-card" onClick={()=>setTab("clients")}><BriefcaseBusiness size={20}/><span>Client receivables</span><strong>{money(clientPending)}</strong><small>Pending from clients</small></button>
     <button className="receive-card" onClick={()=>setTab("loans")}><HandCoins size={20}/><span>Friends' loans</span><strong>{money(loanPending)}</strong><small>Outstanding loans</small></button>
