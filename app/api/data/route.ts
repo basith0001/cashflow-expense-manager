@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     const store = url.searchParams.get("store");
     if (!validStore(store)) return Response.json({ error: "Invalid store" }, { status: 400 });
 
-    const row = await db.prepare("SELECT data FROM app_data WHERE store = ?").bind(store).first() as Promise<{data:string} | null>;
+    const row = await db.prepare("SELECT data FROM app_data WHERE store = ?").bind(store).first() as {data:string} | null;
     return Response.json({ data: row ? JSON.parse(row.data) : [] });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
