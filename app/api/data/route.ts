@@ -12,51 +12,32 @@ type KV = {
 
 type Env = { KV?: KV };
 
-function getEnv(): Env { return getCloudflareContext().env as unknown as Env; }
-
-function getKv(env: Env) {
-  const kv = env.KV;
-  if (!kv) throw new Error("Cloudflare KV binding KV is not available.");
-  return kv;
+function getEnv(): Env {
+  return getCloudflareContext().env as unknown as Env;
 }
 
-function validStore(value: string | undefined | null): value is Store {
+function getKv(env: Env): KV {
+  if (!env.KV) throw new Error("Cloudflare KV binding KV is not available.");
+  return env.KV;
+}
+
+function validStore(value: string | null): value is Store {
   return !!value && (STORES as readonly string[]).includes(value);
 }
 
-function keyFor(userId: string, store: Store) {
-  return `user:${userId}:store:${store}`;
-}
-
-function legacyKeyFor(store: Store) {
+function keyFor(store: Store) {
   return `store:${store}`;
 }
 
-async function parseStore(raw: string | null) {
+async function readStore(kv: KV, store: Store): Promise<any[]> {
+  const raw = await kv.get(keyFor(store), "text");
   if (!raw) return [];
-  const parsed = JSON.parse(raw);
-  return Array.isArray(parsed) ? parsed : [];
-}
-
-async function readStore(kv: KV, userId: string, store: Store) {
-  const userKey = keyFor(userId, store);
-  const existing = await kv.get(userKey, "text");
-  if (existing !== null) return parseStore(existing);
-
-  // One-time migration for the existing single-user app data.
-  // The first authenticated account claims the legacy data; later accounts start clean.
-  const legacyOwner = await kv.get("auth:legacy-owner", "text");
-  const legacy = await kv.get(legacyKeyFor(store), "text");
-
-  if ((legacyOwner === null || legacyOwner === userId) && legacy !== null) {
-    if (legacyOwner === null) {
-      await kv.put("auth:legacy-owner", userId);
-    }
-    await kv.put(userKey, legacy);
-    return parseStore(legacy);
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
-
-  return [];
 }
 
 async function writeStore(kv: KV, store: Store, items: unknown[]) {
@@ -65,16 +46,8 @@ async function writeStore(kv: KV, store: Store, items: unknown[]) {
 
 export async function GET(request: Request) {
   try {
-    const env = getEnv();
-    const kv = getKv(env);
-    const userId = await getAuthenticatedUserId(request, env);
-
-    if (!userId) {
-      return Response.json({ error: "Authentication required" }, { status: 401 });
-    }
-
-    const url = new URL(request.url);
-    const store = url.searchParams.get("store");
+    const kv = getKv(getEnv());
+    const store = new URL(request.url).searchParams.get("store");
 
     if (!validStore(store)) {
       return Response.json({ error: "Invalid store" }, { status: 400 });
@@ -91,22 +64,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const env = getEnv();
-    const kv = getKv(env);
-    const userId = await getAuthenticatedUserId(request, env);
-
-    if (!userId) {
-      return Response.json({ error: "Authentication required" }, { status: 401 });
-    }
-
+    const kv = getKv(getEnv());
     const body = (await request.json()) as { store?: string; value?: unknown };
 
-    if (
-      !validStore(body.store) ||
-      !body.value ||
-      typeof body.value !== "object" ||
-      Array.isArray(body.value)
-    ) {
+    if (!validStore(body.store) || !body.value || typeof body.value !== "object" || Array.isArray(body.value)) {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
 
@@ -117,7 +78,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Item id is required" }, { status: 400 });
     }
 
-    const index = items.findIndex((item) => item?.id === value.id);
+    const index = items.findIndex((item) => item && typeof item === "object" && "id" in item && item.id === value.id);
     if (index >= 0) items[index] = body.value;
     else items.push(body.value);
 
@@ -133,14 +94,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const env = getEnv();
-    const kv = getKv(env);
-    const userId = await getAuthenticatedUserId(request, env);
-
-    if (!userId) {
-      return Response.json({ error: "Authentication required" }, { status: 401 });
-    }
-
+    const kv = getKv(getEnv());
     const url = new URL(request.url);
     const store = url.searchParams.get("store");
     const id = url.searchParams.get("id");
@@ -150,7 +104,7 @@ export async function DELETE(request: Request) {
     }
 
     const items = await readStore(kv, store);
-    const filtered = items.filter((item) => item?.id !== id);
+    const filtered = items.filter((item) => !(item && typeof item === "object" && "id" in item && item.id === id));
 
     await writeStore(kv, store, filtered);
     return Response.json({ ok: true });
