@@ -75,15 +75,6 @@ export default function HomePage(){
   const loanPending=data.loans.reduce((s:number,l:Loan)=>s+Math.max(0,l.amount-l.repaid),0);
   const borrowingPending=data.borrowings.reduce((s:number,b:Borrowing)=>s+Math.max(0,b.amount-b.repaid),0);
   const saveTx=async(t:Transaction)=>{await put("transactions",t); if(t.type==="clientPayment"&&t.clientId){const c=data.clients.find((x:Client)=>x.id===t.clientId);if(c)await put("clients",{...c,received:c.received+t.amount})} if(t.type==="loanRepayment"&&t.loanId){const l=data.loans.find((x:Loan)=>x.id===t.loanId);if(l)await put("loans",{...l,repaid:l.repaid+t.amount})} await refresh();setShowAdd(false)};
-  const page=tab==="home"?<Dashboard {...{totals,clientPending,loanPending,borrowingPending,tx,setTab,setShowAdd}}/>:
-    tab==="transactions"?<Transactions tx={tx} onDelete={async(id)=>{await del("transactions",id);await refresh()}}/>:
-    tab==="accounts"?<Accounts accounts={data.accounts} tx={tx} refresh={refresh}/>:
-    tab==="clients"?<Clients clients={data.clients} tx={tx} refresh={refresh}/>:
-    tab==="loans"?<Loans loans={data.loans} tx={tx} refresh={refresh}/>:
-    tab==="borrowings"?<Borrowings borrowings={data.borrowings} refresh={refresh}/>:
-    tab==="recurring"?<Recurring items={data.recurring} refresh={refresh}/>:
-    tab==="analytics"?<Analytics tx={tx}/>:
-    tab==="reports"?<Reports tx={tx} accounts={data.accounts}/>:
   const logout=async()=>{await supabase?.auth.signOut();setUser(null);setReady(false)};
   const page=tab==="home"?<Dashboard {...{totals,clientPending,loanPending,borrowingPending,tx,setTab,setShowAdd}}/>:
     tab==="transactions"?<Transactions tx={tx} onDelete={async(id)=>{await del("transactions",id);await refresh()}}/>:
