@@ -67,7 +67,7 @@ export default function HomePage(){
   return <main className="app-shell">
     <header className="topbar"><div><p className="eyebrow">PERSONAL FINANCE</p><h1>{tab==="home"?"Good evening":tab==="clients"?"Clients & Receivables":tab==="loans"?"Kadam Koduthathu":tab==="borrowings"?"Kadam Vangiyath":tab[0].toUpperCase()+tab.slice(1)}</h1></div><button className="icon-btn"><Bell size={19}/></button></header>
     {page}
-    <button className="fab" onClick={()=>setShowAdd(true)}><Plus size={25}/></button>
+    {tab==="home"&&<button className="fab" onClick={()=>setShowAdd(true)}><Plus size={25}/></button>}
     <nav className="bottom-nav"><Nav icon={<Home/>} label="Home" active={tab==="home"} onClick={()=>{setTab("home");setSub("")}}/><Nav icon={<ReceiptText/>} label="Transactions" active={tab==="transactions"} onClick={()=>setTab("transactions")}/><div/><Nav icon={<BarChart3/>} label="Analytics" active={tab==="analytics"} onClick={()=>setTab("analytics")}/><Nav icon={<Settings/>} label="More" active={tab==="more"} onClick={()=>setTab("more")}/></nav>
     {showAdd&&<AddTransaction {...{data,onClose:()=>setShowAdd(false),onSave:saveTx}}/>}{editTx&&<AddTransaction data={data} initial={editTx} onClose={()=>setEditTx(null)} onSave={updateTx}/>} 
   </main>
