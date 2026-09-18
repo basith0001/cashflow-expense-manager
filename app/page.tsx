@@ -84,9 +84,18 @@ export default function HomePage(){
     tab==="recurring"?<Recurring items={data.recurring} refresh={refresh}/>:
     tab==="analytics"?<Analytics tx={tx}/>:
     tab==="reports"?<Reports tx={tx} accounts={data.accounts}/>:
+  const logout=async()=>{await supabase?.auth.signOut();setUser(null);setReady(false)};
+  const page=tab==="home"?<Dashboard {...{totals,clientPending,loanPending,borrowingPending,tx,setTab,setShowAdd}}/>:
+    tab==="transactions"?<Transactions tx={tx} onDelete={async(id)=>{await del("transactions",id);await refresh()}}/>:
+    tab==="accounts"?<Accounts accounts={data.accounts} tx={tx} refresh={refresh}/>:
+    tab==="clients"?<Clients clients={data.clients} tx={tx} refresh={refresh}/>:
+    tab==="loans"?<Loans loans={data.loans} tx={tx} refresh={refresh}/>:
+    tab==="borrowings"?<Borrowings borrowings={data.borrowings} refresh={refresh}/>:
+    tab==="recurring"?<Recurring items={data.recurring} refresh={refresh}/>:
+    tab==="analytics"?<Analytics tx={tx}/>:
+    tab==="reports"?<Reports tx={tx} accounts={data.accounts}/>:
     tab==="backup"?<Backup data={data} refresh={refresh}/>:
     <More onNavigate={setTab} user={user} onLogout={logout}/>;
-  const logout=async()=>{await supabase?.auth.signOut();setUser(null);setReady(false)};
   if(!supabaseConfigured)return <SetupScreen/>;
   if(!authReady)return <main className="app-shell"><div className="loading">Checking your login…</div></main>;
   if(!user)return <AuthScreen/>;
