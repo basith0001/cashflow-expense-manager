@@ -269,3 +269,27 @@ button:active{transform:scale(.97)}
 @media(min-width:521px){
   .app-shell{border-radius:0}
 }
+
+
+/* Keep bottom navigation and Home add button locked to the viewport while content scrolls */
+html,body{min-height:100%;overflow-x:hidden}
+.app-shell{position:relative;min-height:100dvh}
+.bottom-nav{
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:0!important;
+  transform:translate3d(-50%,0,0)!important;
+  width:min(520px,100vw)!important;
+  z-index:100!important;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  height:calc(76px + env(safe-area-inset-bottom,0px))!important;
+}
+.fab{
+  position:fixed!important;
+  left:50%!important;
+  bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
+  transform:translate3d(-50%,0,0)!important;
+  z-index:101!important;
+}
+.fab:hover{transform:translate3d(-50%,-3px,0) scale(1.03)!important}
