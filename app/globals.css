@@ -113,3 +113,41 @@ html,body{background:radial-gradient(circle at 10% 0%,rgba(124,92,255,.20),trans
 .modal-backdrop{background:rgba(0,0,0,.72)}.sheet{background:rgba(13,24,41,.96);border:1px solid rgba(255,255,255,.10);color:#f4f7fb}.close-btn{background:rgba(255,255,255,.08);color:#dbe5f5}.sheet-handle{background:#52627a}
 .type-tabs button{background:rgba(255,255,255,.05);border-color:var(--dark-line);color:#b9c7da}.type-tabs button.selected{background:linear-gradient(135deg,rgba(124,92,255,.28),rgba(65,105,225,.22));color:#bcaeff;border-color:rgba(155,135,255,.40)}
 .form-sheet label{color:#9aa9bf}.optional{color:#71819a}
+
+
+/* Smooth premium app motion */
+html{scroll-behavior:smooth}
+body{-webkit-tap-highlight-color:transparent}
+button,input,select{transition:transform .18s ease,opacity .18s ease,background-color .22s ease,border-color .22s ease,box-shadow .22s ease,color .22s ease}
+button:active{transform:scale(.97)}
+.icon-btn:hover,.small-add:hover,.chip:hover,.menu-list button:hover,.nav-item:hover{transform:translateY(-1px)}
+.content{animation:pageIn .34s cubic-bezier(.22,1,.36,1) both}
+.stat-card,.receive-card,.upcoming,.transaction-list,.chart-card,.data-card,.report-card,.menu-list,.form-card{animation:cardIn .42s cubic-bezier(.22,1,.36,1) both}
+.stat-card:nth-child(2),.receive-card:nth-child(2),.data-card:nth-child(2),.transaction:nth-child(2),.menu-list button:nth-child(2){animation-delay:.035s}
+.stat-card:nth-child(3),.receive-card:nth-child(3),.data-card:nth-child(3),.transaction:nth-child(3),.menu-list button:nth-child(3){animation-delay:.07s}
+.stat-card:nth-child(4),.receive-card:nth-child(4),.data-card:nth-child(4),.transaction:nth-child(4),.menu-list button:nth-child(4){animation-delay:.105s}
+.transaction{animation:rowIn .32s cubic-bezier(.22,1,.36,1) both}
+.fab{transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s ease,background .22s ease}
+.fab:hover{transform:translateX(-50%) translateY(-3px) scale(1.03);box-shadow:0 18px 40px rgba(93,80,220,.42)}
+.bottom-nav{transition:background .25s ease,box-shadow .25s ease}
+.nav-item{transition:color .2s ease,transform .2s cubic-bezier(.22,1,.36,1)}
+.nav-item.active svg{animation:navPop .28s cubic-bezier(.22,1,.36,1)}
+.modal-backdrop{animation:overlayIn .22s ease both}
+.sheet{animation:sheetUp .42s cubic-bezier(.22,1,.36,1) both}
+.month-picker{animation:cardIn .42s cubic-bezier(.22,1,.36,1) both}
+.search,.filter-row,.chips{animation:fadeSlide .3s ease both}
+.save-btn:hover,.inline-form button:hover,.report-card button:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(76,86,190,.24)}
+.delete-btn:hover{color:#ff7b85;transform:scale(1.08)}
+.edit-btn{border:0;background:rgba(124,92,255,.10);color:#a995ff;border-radius:9px;padding:5px 8px;font-size:10px;font-weight:600}
+.edit-btn:hover{background:rgba(124,92,255,.20);transform:translateY(-1px)}
+.tx-actions{display:flex;align-items:center;gap:3px}
+@keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes rowIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes sheetUp{from{opacity:.4;transform:translateY(42px)}to{opacity:1;transform:none}}
+@keyframes navPop{0%{transform:scale(.75)}65%{transform:scale(1.16)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
