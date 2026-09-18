@@ -72,7 +72,7 @@ export async function DELETE(request: Request) {
     const store = url.searchParams.get("store");
     const id = url.searchParams.get("id");
     if (!validStore(store) || !id) return Response.json({ error: "Invalid request" }, { status: 400 });
-    const row = await db.prepare("SELECT data FROM app_data WHERE store = ?").bind(store).first<{data:string}>();
+    const row = await db.prepare("SELECT data FROM app_data WHERE store = ?").bind(store).first() as {data:string} | null;
     if (!row) return Response.json({ ok: true });
     const items = JSON.parse(row.data).filter((x:any) => x?.id !== id);
     await db.prepare("INSERT INTO app_data(store,data,updated_at) VALUES(?,?,?) ON CONFLICT(store) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at")
