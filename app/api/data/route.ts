@@ -24,7 +24,7 @@ async function ensureTable(db: DB) {
   ).run();
 }
 
-function validStore(value: string | null): value is Store {
+function validStore(value: string | undefined | null): value is Store {
   return !!value && (STORES as readonly string[]).includes(value);
 }
 
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     if (!validStore(body.store) || !body.value || typeof body.value !== "object") {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
-    const existing = await db.prepare("SELECT data FROM app_data WHERE store = ?").bind(body.store).first<{data:string}>();
+    const existing = await db.prepare("SELECT data FROM app_data WHERE store = ?").bind(body.store).first() as {data:string} | null;
     const items = existing ? JSON.parse(existing.data) : [];
     const index = items.findIndex((x:any) => x?.id === (body.value as any).id);
     if (index >= 0) items[index] = body.value;
