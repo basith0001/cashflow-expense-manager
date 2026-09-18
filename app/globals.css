@@ -151,3 +151,9 @@ button:active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Keep the add button anchored to the viewport, independent of transaction-list height. */
+.fab{position:fixed!important;left:50%!important;bottom:calc(68px + env(safe-area-inset-bottom, 0px) + 10px)!important;transform:translate3d(-50%,0,0)!important;z-index:20!important;}
+.fab:hover{transform:translate3d(-50%,-3px,0) scale(1.03)!important;}
+@media (max-width:520px){.bottom-nav{padding-bottom:env(safe-area-inset-bottom, 0px);height:calc(68px + env(safe-area-inset-bottom, 0px));}.fab{bottom:calc(68px + env(safe-area-inset-bottom, 0px) + 10px)!important;}}
