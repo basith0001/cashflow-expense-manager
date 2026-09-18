@@ -21,7 +21,7 @@ function getKv(env: Env): KV {
   return env.KV;
 }
 
-function validStore(value: string | null): value is Store {
+function validStore(value: string | undefined | null): value is Store {
   return !!value && (STORES as readonly string[]).includes(value);
 }
 
