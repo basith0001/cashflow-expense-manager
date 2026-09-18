@@ -2,34 +2,36 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export const dynamic = "force-dynamic";
 
+type KV = {
+  get: (key: string, type?: "text") => Promise<string | null>;
+  put: (key: string, value: string) => Promise<void>;
+};
+
 export async function GET() {
   try {
     const { env } = getCloudflareContext();
-    const db = (env as unknown as { DB?: {
-      prepare: (query: string) => {
-        all: () => Promise<{ results: Array<{ name: string }> }>;
-      };
-    } }).DB;
+    const kv = (env as unknown as { KV?: KV }).KV;
 
-    if (!db) {
+    if (!kv) {
       return Response.json(
         {
           ok: false,
-          error: "D1 binding DB is not available in this Worker.",
-          hint: "Check Cloudflare Worker > Settings > Bindings and make sure D1 variable DB is connected to cashflow-db, then redeploy.",
+          error: "KV binding KV is not available in this Worker.",
+          hint: "The Worker must be deployed with the KV binding declared in wrangler.jsonc.",
         },
         { status: 500 }
       );
     }
 
-    const result = await db.prepare(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE '_cf_%' ORDER BY name"
-    ).all();
+    const markerKey = "healthcheck";
+    const existing = await kv.get(markerKey, "text");
+    await kv.put(markerKey, new Date().toISOString());
 
     return Response.json({
       ok: true,
-      database: "cashflow-db",
-      tables: result.results,
+      storage: "Cloudflare KV",
+      binding: "KV",
+      healthcheck: existing ? "read-write confirmed" : "write confirmed",
     });
   } catch (error) {
     return Response.json(
