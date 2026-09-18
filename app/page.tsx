@@ -52,7 +52,7 @@ export default function HomePage(){
     tab==="reports"?<Reports tx={tx} accounts={data.accounts}/>:
     tab==="backup"?<Backup data={data} refresh={refresh}/>:
     <More onNavigate={setTab}/>;
-  if(loadError)return <main className="app-shell"><div className="auth-shell"><div className="auth-card"><div className="auth-brand"><Wallet size={26}/></div><h1>Could not load your data</h1><p>{loadError}</p><button className="auth-button" onClick={refresh}>Try again</button><button className="auth-link" onClick={logout}>Sign out</button></div></div></main>;
+  if(loadError)return <main className="app-shell"><div className="auth-shell"><div className="auth-card"><div className="auth-brand"><Wallet size={26}/></div><h1>Could not load your data</h1><p>{loadError}</p><button className="auth-button" onClick={refresh}>Try again</button></div></div></main>;
   if(!ready)return <main className="app-shell"><div className="loading">Loading your finance data…</div></main>;
   return <main className="app-shell">
     <header className="topbar"><div><p className="eyebrow">PERSONAL FINANCE</p><h1>{tab==="home"?"Good evening":tab==="clients"?"Clients & Receivables":tab==="loans"?"Kadam Koduthathu":tab==="borrowings"?"Kadam Vangiyath":tab[0].toUpperCase()+tab.slice(1)}</h1></div><button className="icon-btn"><Bell size={19}/></button></header>
