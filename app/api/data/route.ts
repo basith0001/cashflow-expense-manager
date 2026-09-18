@@ -5,9 +5,11 @@ export const dynamic = "force-dynamic";
 const STORES = ["transactions", "accounts", "clients", "loans", "recurring"] as const;
 type Store = (typeof STORES)[number];
 
+type DB = { prepare: (query: string) => any };
+
 function getDb() {
   const { env } = getCloudflareContext();
-  const db = (env as unknown as { DB?: D1Database }).DB;
+  const db = (env as unknown as { DB?: DB }).DB;
   if (!db) throw new Error("Cloudflare D1 binding DB is not available.");
   return db;
 }
