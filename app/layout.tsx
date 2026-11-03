@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { DM_Sans } from "next/font/google";
+
+const dmSans = DM_Sans({ subsets: ["latin"], display: "swap" });
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
-      <body>{children}</body>
+      <body className={dmSans.className}>{children}</body>
     </html>
   );
 }
