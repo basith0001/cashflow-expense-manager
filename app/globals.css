@@ -422,3 +422,37 @@ html,body{background:#eef3fb!important;color:#132038!important}
 .entry-actions>button{height:58px;border-radius:24px;border:1px solid #dce5ed;background:#f1f5f8;color:#8fa0b5;font-size:13px;font-weight:750}
 .entry-actions .save-btn{margin:0!important;background:#092254!important;color:#fff!important;border:0!important}
 @media(max-width:380px){.ref-entry{padding-left:16px!important;padding-right:16px!important}.entry-category-grid{gap:7px}.entry-category-grid button{min-height:102px;font-size:11px}.ref-entry h2{font-size:27px!important}}
+
+
+/* Refined typography: compact sizing and DM Sans */
+html,body{font-family:"DM Sans",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.reference-topbar strong{font-size:17px;letter-spacing:-.35px}
+.ref-greeting h1{font-size:21px!important;letter-spacing:-.65px!important}
+.ref-greeting p{font-size:11px!important}
+.ref-spend-head,.ref-spend-foot,.ref-section-title small,.ref-snap-title>span{font-size:9px!important;letter-spacing:.11em}
+.ref-spend-main strong{font-size:32px!important;letter-spacing:-1.2px!important}
+.ref-spend-main p{font-size:11px!important}
+.ref-ring b{font-size:17px!important}.ref-ring small{font-size:9px!important}
+.ref-snap-title strong{font-size:13px!important}
+.ref-snap-grid b{font-size:16px!important;letter-spacing:-.4px}
+.ref-snap-grid strong{font-size:10px!important}
+.ref-snap-grid small{font-size:9px!important}
+.ref-section-title h2{font-size:18px!important;letter-spacing:-.45px!important}
+.ref-section-title>button{font-size:10px!important}
+.ref-category small{font-size:10px!important}.ref-category strong{font-size:12px!important}.ref-category>b{font-size:10px!important}
+.ref-tx-list .tx-main strong{font-size:12px!important}.ref-tx-list .tx-main span{font-size:9px!important}.ref-tx-list .tx-right>strong{font-size:11px!important}
+.ref-quick strong{font-size:12px!important}.ref-quick small{font-size:10px!important}
+.ref-finance-links button{font-size:10px!important}
+.page-title h2{font-size:21px!important;letter-spacing:-.55px!important}
+.page-title p,.page>p{font-size:12px!important}
+.section-head h2{font-size:14px!important}
+.stat-card strong{font-size:20px!important}
+.data-card strong,.tx-main strong{font-size:12px!important}
+.data-card span,.tx-main span{font-size:9px!important}
+.nav-item{font-size:9px!important}
+.ref-entry h2{font-size:25px!important;letter-spacing:-.8px!important}
+.entry-subtitle{font-size:12px!important}
+.entry-category-grid button{font-size:11px!important}
+.entry-field input,.entry-field select{font-size:13px!important}
+.entry-payment-options button span{font-size:12px!important}
+.entry-actions>button{font-size:12px!important}
