@@ -320,3 +320,49 @@ html,body{height:100%;overflow:hidden}
 
 /* Keep transaction save action accessible above the phone navigation */
 .form-sheet{max-height:92dvh!important;overflow-y:auto!important;padding-bottom:96px!important;scroll-padding-bottom:96px}.form-sheet .save-btn{position:sticky;bottom:8px;z-index:5;margin-top:14px;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+
+
+/* Routinee-inspired Cashflow home dashboard */
+.dashboard-content{gap:0}
+.dashboard-hero{
+  display:block!important;
+  min-height:0!important;
+  padding:20px 20px 18px!important;
+  border-radius:26px!important;
+  margin:0 0 26px!important;
+  background:
+    radial-gradient(circle at 90% 0%,rgba(154,132,255,.30),transparent 36%),
+    linear-gradient(135deg,#172e59 0%,#273f82 56%,#51439b 100%)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+}
+.hero-topline{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hero-topline>span{font-size:9px;letter-spacing:.17em;font-weight:800;color:#b7c5e7}
+.hero-topline select{max-width:145px;height:34px;padding:0 10px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:#fff;font-size:10px;outline:none}
+.hero-topline option{background:#172b50;color:#fff}
+.hero-net-label{margin-top:24px;color:#c3cde5;font-size:11px}
+.hero-net{display:block;margin-top:4px;font-size:36px;line-height:1.15;letter-spacing:-1.3px;color:#fff!important;font-weight:800}
+.hero-net.positive{color:#70e0b5!important}.hero-net.negative{color:#ff9a9f!important}
+.hero-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px;padding-top:15px;border-top:1px solid rgba(255,255,255,.14)}
+.hero-breakdown>div{display:grid;grid-template-columns:9px 1fr;align-items:center;column-gap:7px;row-gap:4px}
+.hero-breakdown>div>span:nth-child(2){font-size:10px;color:#c1cce2}
+.hero-breakdown b{grid-column:2;font-size:14px;color:#fff}
+.hero-dot{width:7px;height:7px;border-radius:50%}.income-dot{background:#55d6a5}.expense-dot{background:#ff8e96}
+.dashboard-section-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 13px!important}
+.section-caption{font-size:9px;color:#8191aa}
+.money-overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.money-overview-card{position:relative;min-width:0;min-height:154px;padding:15px;text-align:left;border:1px solid rgba(255,255,255,.08);border-radius:21px;background:linear-gradient(145deg,rgba(21,38,64,.96),rgba(16,29,49,.88));color:#f4f7fb;display:flex;flex-direction:column;align-items:flex-start;box-shadow:0 12px 28px rgba(0,0,0,.16)}
+.overview-icon{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:rgba(124,92,255,.17);color:#b6a5ff;margin-bottom:12px}
+.repay-overview .overview-icon{background:rgba(32,184,213,.14);color:#62d7e9}
+.overview-label{font-size:10px;color:#9eacc2}
+.money-overview-card strong{font-size:21px;letter-spacing:-.6px;margin:4px 0}
+.money-overview-card small{font-size:9px;color:#7f90a8}
+.money-overview-card i{position:absolute;right:13px;top:16px;color:#7485a0}
+.quick-links{display:flex;gap:8px;margin-top:10px}
+.quick-links button{flex:1;min-width:0;display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;column-gap:7px;row-gap:3px;padding:11px 10px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:rgba(18,30,50,.56);color:#a995ff;text-align:left}
+.quick-links button span{font-size:9px;color:#9aa9bf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quick-links button b{grid-column:2;font-size:11px;color:#eef3fa}
+.recent-head{margin-top:28px!important;display:flex;align-items:center;justify-content:space-between}
+.recent-head button{display:flex;align-items:center;gap:2px}
+.dashboard-transactions{margin-bottom:0}
+.dashboard-all-transactions{width:100%;margin-top:9px;padding:12px;border:1px solid rgba(255,255,255,.07);border-radius:14px;background:rgba(18,30,50,.50);color:#a995ff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px}
+@media(max-width:380px){.hero-net{font-size:31px}.money-overview-card{padding:12px}.money-overview-card strong{font-size:18px}.section-caption{display:none}}
