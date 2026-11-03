@@ -19,7 +19,7 @@ type Borrowing = {id:string; person:string; amount:number; repaid:number; date:s
 type Recurring = {id:string; title:string; amount:number; category:string; account:string; nextDate:string; frequency:string};
 
 const STORES=["transactions","accounts","clients","loans","borrowings","recurring"] as const;
-const CATEGORIES=["Food","Fuel","Shopping","Home Expenses","Bills","Rent","Subscriptions","Entertainment","Personal","Other"];
+const CATEGORIES=["Food","Groceries","Shopping","Transport","Fuel","Healthcare","Home Expenses","Bills","Rent","Subscriptions","Entertainment","Personal","Other"];
 const ACCOUNT_OPTIONS=["Cash","KGB","Federal","Axis","Slice Card","ICICI Card","Axis Neo Card","Axis Privillage"];
 const ACCOUNT_TYPES=["Cash","Bank account","Credit card","UPI","Wallet"];
 
@@ -177,7 +177,7 @@ function AddTransaction({data,onClose,onSave,initial}:{data:any,onClose:()=>void
   <label className="entry-field entry-date">DATE<select value={date} onChange={e=>setDate(e.target.value)}><option value={today()}>Today</option><option value={date}>{date}</option></select></label>
   <div className="entry-section-head paid-head"><span>PAID BY · OPTIONAL</span></div><div className="entry-payment-options">{paymentOptions.map((x:string,i:number)=><button type="button" key={x} className={account===x?"selected":""} onClick={()=>setAccount(x)}>{i===0?"▤":i===1?"▣":i===2?"▯":i===3?"▥":"▱"} <span>{x}</span></button>)}</div>
   <label className="entry-field entry-note">NOTE<input value={note} onChange={e=>setNote(e.target.value)} placeholder="Add a note (optional)"/></label>
-  <div className="entry-actions"><button type="button" onClick={()=>{setAmount("");setNote("");setTitle("");}}>＋ Add & Next</button><button className="save-btn" disabled={saving||calculatedAmount===null||calculatedAmount<=0}>{saving?"Saving…":initial?"Update transaction":"Add Expense"}</button></div>
+  <div className="entry-actions"><button type="button" onClick={()=>{setAmount("");setNote("");setTitle("");}}>Clear</button><button className="save-btn" disabled={saving||calculatedAmount===null||calculatedAmount<=0}>{saving?"Saving…":initial?"Update transaction":"Add Expense"}</button></div>
  </form></div>
 }
 function ClientForm({onClose,onSave}:{onClose:()=>void,onSave:(c:Client)=>Promise<void>}){const [name,setName]=useState(""),[project,setProject]=useState(""),[billed,setBilled]=useState(""),[dueDate,setDueDate]=useState(today());return <Modal title="Add client" onClose={onClose}><label>Client name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Project / invoice<input value={project} onChange={e=>setProject(e.target.value)}/></label><label>Billed amount<input inputMode="decimal" value={billed} onChange={e=>setBilled(e.target.value)}/></label><label>Due date<input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label><button className="save-btn" onClick={()=>name&&onSave({id:uid(),name,project,billed:Number(billed)||0,received:0,dueDate})}>Save client</button></Modal>}
