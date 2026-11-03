@@ -103,22 +103,45 @@ export default function HomePage(){
   </main>
 }
 
-function Dashboard({totals,clientPending,loanPending,borrowingPending,tx,setTab,setShowAdd,selectedMonth,setSelectedMonth,monthOptions}:any){const label=(m:string)=>new Date(`${m}-01T12:00:00`).toLocaleDateString("en-IN",{month:"long",year:"numeric"});const monthTx=tx.filter((t:Transaction)=>t.date.startsWith(selectedMonth));return <section className="content">
-  <div className="month-picker"><div><span>Cash flow overview</span><strong>{label(selectedMonth)}</strong></div><select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} aria-label="Select month">{monthOptions.map((m:string)=><option value={m} key={m}>{label(m)}</option>)}</select></div>
-  <div className="stats-grid income-spending-only"><Stat title="Income" value={money(totals.income)} note={label(selectedMonth)} cls="positive"/><Stat title="Spending" value={money(totals.expense)} note={label(selectedMonth)} cls="negative"/></div>
-  <div className="section-head"><h2>Money to receive</h2></div><div className="receive-grid">
-    <button className="receive-card" onClick={()=>setTab("clients")}><BriefcaseBusiness size={20}/><span>Client receivables</span><strong>{money(clientPending)}</strong><small>Pending from clients</small></button>
-    <button className="receive-card" onClick={()=>setTab("loans")}><HandCoins size={20}/><span>Kadam Koduthathu</span><strong>{money(loanPending)}</strong><small>Outstanding</small></button>
-  </div>
-  <div className="section-head"><h2>Money to give</h2></div><div className="receive-grid">
-    <button className="receive-card" onClick={()=>setTab("borrowings")}><HandCoins size={20}/><span>Kadam Vangiyath</span><strong>{money(borrowingPending)}</strong><small>You need to repay</small></button>
-  </div>
-  <div className="section-head"><h2>Upcoming payments</h2><button onClick={()=>setTab("recurring")}>Manage</button></div>
-  <div className="upcoming">{monthTx.length===0?<div className="empty-state">No transactions for {label(selectedMonth)}.</div>:<div className="upcoming-row"><CalendarDays size={18}/><div><strong>Recurring payments</strong><span>Track rent, subscriptions and bills</span></div><ChevronRight size={17}/></div>}</div>
-  <div className="section-head"><h2>Recent transactions</h2><button onClick={()=>setTab("transactions")}>View all</button></div>
-  <div className="transaction-list">{monthTx.length===0?<div className="empty-state">No transactions for {label(selectedMonth)}.</div>:monthTx.sort((a:Transaction,b:Transaction)=>b.date.localeCompare(a.date)).slice(0,8).map((t:Transaction)=><TxRow key={t.id} t={t}/>)}</div>
-</section>}
+function Dashboard({totals,clientPending,loanPending,borrowingPending,tx,setTab,selectedMonth,setSelectedMonth,monthOptions}:any){
+  const label=(m:string)=>new Date(`${m}-01T12:00:00`).toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+  const monthTx=tx.filter((t:Transaction)=>t.date.startsWith(selectedMonth)).sort((a:Transaction,b:Transaction)=>b.date.localeCompare(a.date));
+  const net=totals.income-totals.expense;
+  const totalToReceive=clientPending+loanPending;
+  const totalToRepay=borrowingPending;
+  return <section className="content dashboard-content">
+    <div className="month-picker dashboard-hero">
+      <div className="hero-topline"><span>MONTHLY OVERVIEW</span><select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} aria-label="Select month">{monthOptions.map((m:string)=><option value={m} key={m}>{label(m)}</option>)}</select></div>
+      <div className="hero-net-label">Net cash flow</div>
+      <strong className={net>=0?"hero-net positive":"hero-net negative"}>{net<0?"−":""}{money(net)}</strong>
+      <div className="hero-breakdown">
+        <div><span className="hero-dot income-dot"/><span>Income</span><b>{money(totals.income)}</b></div>
+        <div><span className="hero-dot expense-dot"/><span>Spending</span><b>{money(totals.expense)}</b></div>
+      </div>
+    </div>
 
+    <div className="section-head dashboard-section-head"><h2>Money overview</h2><span className="section-caption">Your outstanding balances</span></div>
+    <div className="money-overview-grid">
+      <button className="money-overview-card receive-overview" onClick={()=>setTab("clients")}>
+        <span className="overview-icon"><BriefcaseBusiness size={18}/></span><span className="overview-label">To receive</span><strong>{money(totalToReceive)}</strong>
+        <small>Clients + money lent</small><i><ChevronRight size={15}/></i>
+      </button>
+      <button className="money-overview-card repay-overview" onClick={()=>setTab("borrowings")}>
+        <span className="overview-icon"><HandCoins size={18}/></span><span className="overview-label">To repay</span><strong>{money(totalToRepay)}</strong>
+        <small>Kadam Vangiyath</small><i><ChevronRight size={15}/></i>
+      </button>
+    </div>
+
+    <div className="quick-links">
+      <button onClick={()=>setTab("clients")}><BriefcaseBusiness size={16}/><span>Client dues</span><b>{money(clientPending)}</b></button>
+      <button onClick={()=>setTab("loans")}><HandCoins size={16}/><span>Kadam Koduthathu</span><b>{money(loanPending)}</b></button>
+    </div>
+
+    <div className="section-head recent-head"><h2>Recent transactions</h2><button onClick={()=>setTab("transactions")}>See all <ChevronRight size={14}/></button></div>
+    <div className="transaction-list dashboard-transactions">{monthTx.length===0?<div className="empty-state">No transactions for {label(selectedMonth)}.</div>:monthTx.slice(0,6).map((t:Transaction)=><TxRow key={t.id} t={t}/>)}</div>
+    <button className="dashboard-all-transactions" onClick={()=>setTab("transactions")}>View all transactions <ChevronRight size={15}/></button>
+  </section>
+}
 function Stat({title,value,note,cls}:{title:string,value:string,note:string,cls:string}){return <div className="stat-card"><span>{title}</span><strong className={cls}>{value}</strong><small>{note}</small></div>}
 
 function Transactions({tx,onDelete,onEdit}:{tx:Transaction[],onDelete:(id:string)=>void,onEdit:(t:Transaction)=>void}){const [q,setQ]=useState(""),[filter,setFilter]=useState("all"),[cat,setCat]=useState(""),[account,setAccount]=useState("");
