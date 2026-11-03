@@ -483,3 +483,24 @@ html,body{font-family:"DM Sans",ui-sans-serif,system-ui,-apple-system,BlinkMacSy
 .income-form-card{background:#fff;border:1px solid #e5e8f0;border-radius:24px;padding:18px;margin:0 0 25px;display:grid;gap:12px}.income-form-head{display:flex;align-items:center;justify-content:space-between}.income-form-head h3{font-size:15px;margin:0;color:#182033}.income-form-head button{border:0;background:#f1f3f8;border-radius:50%;width:30px;height:30px;color:#6f7889}.income-form-card label{display:grid;gap:6px;font-size:10px;letter-spacing:.1em;color:#8b96a8;font-weight:750}.income-form-card input,.income-form-card select{height:46px;border:1px solid #e2e7ef;border-radius:12px;padding:0 12px;background:#fafbfe;color:#182033;font-size:14px}.income-form-card .save-btn{margin-top:5px;border:0;border-radius:14px;padding:14px;background:#5145e8;color:white;font-weight:750}
 .ref-income-overview{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e3eae8;border-radius:20px;padding:16px;margin:4px 0 22px}.ref-income-overview>div{display:flex;flex-direction:column;gap:5px}.ref-income-overview span{font-size:9px;letter-spacing:.15em;color:#93a1b2;font-weight:800}.ref-income-overview strong{font-size:22px;color:#5145e8}.ref-income-overview button{display:flex;align-items:center;gap:4px;border:0;border-radius:24px;background:#eeefff;color:#5145e8;padding:10px 12px;font-size:11px;font-weight:750}
 @media(max-width:380px){.income-gauge{height:340px}.income-gauge-arc{height:270px}.income-type{min-height:160px;padding:13px}.income-type>strong{font-size:13px}}
+
+/* Home monthly income-versus-spending balance */
+.ref-monthly-overview{background:#fff;border:1px solid #e2eae7;border-radius:27px;padding:22px 19px 19px;box-shadow:0 13px 28px #233b480b;margin-bottom:15px}
+.ref-monthly-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ref-monthly-head>span{font-size:10px;letter-spacing:.17em;color:#96a3b2;font-weight:850}
+.ref-monthly-head button{display:flex;align-items:center;gap:3px;border:0;background:#edf0ff;color:#5145e8;border-radius:22px;padding:8px 11px;font-size:10px;font-weight:750}
+.ref-monthly-main{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 20px}
+.ref-monthly-main>div:first-child{min-width:0}
+.ref-monthly-main strong{display:block;font-size:clamp(28px,7vw,37px);line-height:1.1;letter-spacing:-1.3px;color:#087f6e;overflow-wrap:anywhere}
+.ref-monthly-main p{font-size:11px;color:#8e99a8;margin:7px 0 0}
+.ref-monthly-overview .ref-ring{width:92px;height:92px;flex:0 0 92px;border-width:9px}
+.ref-monthly-overview .ref-ring b{font-size:19px}
+.ref-monthly-overview .ref-ring small{font-size:8px;text-align:center;max-width:58px;line-height:1.2}
+.ref-monthly-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #edf0f2;border-bottom:1px solid #edf0f2;padding:13px 0;gap:5px}
+.ref-monthly-stats>div{display:flex;flex-direction:column;gap:5px;min-width:0;padding-left:8px;border-left:1px solid #edf0f2}
+.ref-monthly-stats>div:first-child{border:0;padding-left:0}
+.ref-monthly-stats span{font-size:10px;color:#929dac}
+.ref-monthly-stats strong{font-size:clamp(12px,3.3vw,16px);color:#172033;overflow-wrap:anywhere}
+.ref-monthly-track{height:8px;border-radius:20px;background:#edf1ef;overflow:hidden;margin-top:15px}
+.ref-monthly-track i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#0c9a80,#55c3a6);transition:width .25s ease}
+.ref-monthly-foot{font-size:10px;color:#7e8998;font-weight:650;margin-top:9px}
