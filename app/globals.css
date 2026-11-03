@@ -382,3 +382,43 @@ html,body{background:#eef3fb!important;color:#132038!important}
 .reference-nav{height:86px!important;bottom:12px!important;width:min(480px,calc(100vw - 30px))!important;border:0!important;border-radius:38px!important;background:#fff!important;box-shadow:0 12px 32px #142b381f!important;padding:6px 9px!important;grid-template-columns:repeat(5,1fr)!important;overflow:visible}.reference-nav .nav-item{height:67px;color:#9ca8b8;font-size:10px;font-weight:650}.reference-nav .nav-item svg{width:23px;height:23px}.reference-nav .nav-item.active{color:#087f6e}.reference-nav .nav-item.active svg{background:#e5f2ef;border-radius:12px;box-sizing:content-box;padding:7px}.ref-plus{height:60px;width:60px;justify-self:center;align-self:start;transform:translateY(-18px);border:5px solid white;border-radius:50%;background:linear-gradient(135deg,#ff805c,#ffb63c);color:white;display:grid;place-items:center;box-sizing:content-box}
 .page-title h2,.section-head h2,.chart-card h3,.data-card strong,.report-card strong,.menu-list button span{color:#142035!important}.page-title p,.page>p,.tx-main span,.data-card span,.report-card span{color:#93a0b1!important}.stat-card,.receive-card,.upcoming,.transaction-list,.chart-card,.form-card,.report-card,.menu-list,.data-card,.search,.filter-row select,.chip,.inline-form input,.inline-form select,.small-add,.empty-card{background:#fff!important;color:#142035!important;border-color:#e4eaf0!important;box-shadow:0 9px 22px #10213b09!important}.menu-list button{background:#fff!important}.filter-row select,.search input,.inline-form input,.inline-form select{color:#142035!important}.chip{color:#61718b!important}.chip.active{background:#092254!important;color:#fff!important}
 .modal-backdrop{z-index:200!important;background:#152c4550!important}.sheet{background:#f8fafc!important;color:#142035!important;border:0!important;border-radius:32px 32px 0 0!important}.sheet h2{color:#142035!important}.sheet-handle{background:#cdd7e3!important}.close-btn{background:#f2f5f7!important;color:#657489!important}.form-sheet input,.form-sheet select{background:#fff!important;color:#142035!important;border-color:#dae4ed!important}.type-tabs button{background:#fff!important;color:#6b7890!important;border-color:#dce5ed!important}.type-tabs button.selected{background:#e4f1ee!important;color:#087f6e!important;border-color:#087f6d!important}.calculator-btn{color:#087f6d!important;background:#e4f1ee!important;border:0!important}.mini-calculator{background:#fff!important}.calculator-expression{color:#142035!important}.calculator-keys button{background:#eef2f7!important;color:#142035!important}.save-btn{background:#092254!important;color:#fff!important}
+
+
+/* Reference-matched expense entry sheet */
+.ref-entry-backdrop{align-items:flex-end!important}
+.ref-entry{width:min(520px,100%)!important;max-height:94dvh!important;padding:12px 20px calc(28px + env(safe-area-inset-bottom,0px))!important;overflow-y:auto!important}
+.ref-entry .sheet-top{margin-bottom:22px}
+.ref-entry .close-btn{width:42px;height:42px;border-radius:50%;top:0;right:0;background:#f5f3ed!important;border:1px solid #e9e5d9}
+.entry-kicker{font-size:10px;letter-spacing:.24em;font-weight:850;color:#07836e;margin-bottom:7px}
+.ref-entry h2{font-size:30px!important;letter-spacing:-1.1px;margin:0 0 6px!important}
+.entry-subtitle{font-size:14px;color:#96a3b5;margin:0 0 24px}
+.entry-type-switch{display:flex;gap:6px;overflow-x:auto;padding:0 0 14px;margin-bottom:5px}
+.entry-type-switch button{flex:none;border:1px solid #e1e8ee;background:#fff;border-radius:30px;padding:8px 12px;color:#738197;font-size:10px;font-weight:700}
+.entry-type-switch button.active{background:#e3f2ed;border-color:#a8d8cc;color:#087f6e}
+.entry-amount{border:1px solid #dce6ed;border-left:5px solid #07836e;border-radius:27px;background:#fff;padding:22px 20px 18px;margin-bottom:25px;min-height:150px}
+.entry-amount>label,.entry-section-head>span,.entry-field{font-size:10px;letter-spacing:.17em;color:#98a6b9;font-weight:800}
+.entry-amount .amount-input-row{margin-top:15px;gap:5px}
+.entry-amount .rupee-mark{font-size:27px;color:#c5d1df;font-weight:750}
+.entry-amount .amount-input-row input{height:64px!important;border:0!important;background:transparent!important;box-shadow:none!important;margin:0!important;padding:0!important;font-size:48px!important;font-weight:800;letter-spacing:-1.5px;color:#142035!important}
+.entry-amount .calculator-btn{background:#e7f3ef!important;color:#087f6e!important;border-radius:30px;width:54px;height:38px}
+.entry-section-head{display:flex;align-items:center;justify-content:space-between;margin:21px 0 13px}
+.entry-section-head button{border:1px solid #b8ddd5;background:#e8f3f0;border-radius:24px;padding:9px 14px;color:#087f6e;font-weight:700;font-size:11px}
+.entry-category-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.entry-category-grid button{min-height:112px;border:1px solid transparent;border-radius:24px;background:#e1efed;color:#53647a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;font-size:12px}
+.entry-category-grid button:nth-child(2){background:#e2f2eb}.entry-category-grid button:nth-child(3){background:#e5edfb}.entry-category-grid button:nth-child(4){background:#e1f1f8}.entry-category-grid button:nth-child(5){background:#eeeafd}.entry-category-grid button:nth-child(6){background:#f8eaf2}.entry-category-grid button:nth-child(7){background:#f9e9e9}.entry-category-grid button:nth-child(8){background:#f9eee5}.entry-category-grid button:nth-child(9){background:#f0f3f7}
+.entry-category-grid button.selected{border:2px solid #087f6e;box-shadow:0 0 0 3px #087f6e16}
+.entry-cat-icon{width:50px;height:50px;border-radius:17px;background:#cfe6e1;color:#087f6e;display:grid;place-items:center}
+.entry-cat-icon svg{width:23px;height:23px}.cat-1{background:#d2eee0;color:#18a85f}.cat-2{background:#d7e5fc;color:#347de9}.cat-3{background:#d3edf7;color:#079cce}.cat-4{background:#e2dcfb;color:#8a5bf4}.cat-5{background:#f6dced;color:#df5b9d}.cat-6{background:#f7dada;color:#ee5656}.cat-7{background:#f9e0ce;color:#f07822}.cat-8{background:#e2e8ef;color:#687a91}
+.entry-field{display:block;margin:22px 0 8px}
+.entry-field input,.entry-field select{display:block;width:100%;height:48px;border:0!important;border-bottom:1px solid #e0e7ee!important;border-radius:0!important;background:transparent!important;color:#17243b!important;margin-top:8px!important;padding:0 4px!important;font-size:15px!important;letter-spacing:0!important}
+.entry-date select{font-weight:700}
+.paid-head{margin-top:24px}
+.entry-payment-options{display:flex;gap:8px;overflow-x:auto;padding-bottom:5px}
+.entry-payment-options button{flex:none;border:1px solid #e3e7ef;border-radius:30px;background:#fff;padding:11px 14px;color:#078b80;font-size:17px}
+.entry-payment-options button span{font-size:13px;color:#35445a;font-weight:700;margin-left:5px}
+.entry-payment-options button.selected{border-color:#087f6e;background:#e8f3f0}
+.entry-note{margin-top:24px}
+.entry-actions{position:sticky;bottom:-1px;display:grid;grid-template-columns:.9fr 1.2fr;gap:10px;padding:18px 0 2px;margin-top:18px;background:linear-gradient(180deg,rgba(248,250,252,0),#f8fafc 20%)}
+.entry-actions>button{height:58px;border-radius:24px;border:1px solid #dce5ed;background:#f1f5f8;color:#8fa0b5;font-size:13px;font-weight:750}
+.entry-actions .save-btn{margin:0!important;background:#092254!important;color:#fff!important;border:0!important}
+@media(max-width:380px){.ref-entry{padding-left:16px!important;padding-right:16px!important}.entry-category-grid{gap:7px}.entry-category-grid button{min-height:102px;font-size:11px}.ref-entry h2{font-size:27px!important}}
