@@ -115,7 +115,9 @@ function Dashboard({totals,clientPending,loanPending,borrowingPending,tx,setTab,
  const expenses=monthTx.filter(t=>t.type==="expense");
  const cats=[...new Set(expenses.map(t=>t.category))].map(name=>({name,total:expenses.filter(t=>t.category===name).reduce((s,t)=>s+t.amount,0)})).sort((a,b)=>b.total-a.total);
  const spentToday=expenses.filter(t=>t.date===today()).reduce((s,t)=>s+t.amount,0);
- const monthIncome=monthTx.filter(t=>t.type==="income"||t.type==="clientPayment").reduce((s,t)=>s+t.amount,0);\n const monthSpent=expenses.reduce((s,t)=>s+t.amount,0);\n
+ const monthIncome=monthTx.filter(t=>t.type==="income"||t.type==="clientPayment").reduce((s,t)=>s+t.amount,0);
+ const monthSpent=expenses.reduce((s,t)=>s+t.amount,0);
+
  const day=new Date().getDate();
  return <section className="content reference-home">
   <div className="ref-greeting"><div><h1>Good {new Date().getHours()<12?"morning":new Date().getHours()<17?"afternoon":"evening"}</h1><p>{new Date().toLocaleDateString("en-IN",{weekday:"long",month:"long",day:"numeric"})}</p></div><button onClick={()=>setTab("accounts")}><Wallet size={17}/> My Money⌄</button></div>
