@@ -3,14 +3,15 @@
   "short_name": "Cashflow",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8f9f6",
-  "theme_color": "#6f5ce7",
+  "background_color": "#1e1e57",
+  "theme_color": "#1e1e57",
   "description": "Personal cash-flow manager",
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
