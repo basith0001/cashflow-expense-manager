@@ -504,3 +504,30 @@ html,body{font-family:"DM Sans",ui-sans-serif,system-ui,-apple-system,BlinkMacSy
 .ref-monthly-track{height:8px;border-radius:20px;background:#edf1ef;overflow:hidden;margin-top:15px}
 .ref-monthly-track i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#0c9a80,#55c3a6);transition:width .25s ease}
 .ref-monthly-foot{font-size:10px;color:#7e8998;font-weight:650;margin-top:9px}
+
+
+/* Compact dashboard widgets */
+.dash-widget-grid{display:grid;grid-template-columns:1fr;gap:12px;margin:18px 0 24px}
+.dash-widget{min-width:0;background:#fff;border:1px solid #e2eae7;border-radius:23px;padding:17px;box-shadow:0 10px 24px #233b4808}
+.dash-widget-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:17px}
+.dash-widget-head small{display:block;color:#95a2b1;font-size:9px;font-weight:850;letter-spacing:.15em;margin-bottom:5px}
+.dash-widget-head h3{margin:0;color:#172033;font-size:14px;letter-spacing:-.25px}
+.dash-widget-head>span{font-size:9px;color:#929dac;white-space:nowrap}
+.dash-widget-head>button,.dash-widget-link{display:flex;align-items:center;gap:2px;border:0;background:transparent;color:#087f6e;font-size:10px;font-weight:750;padding:3px}
+.flow-bars{display:grid;gap:15px}
+.flow-bar-row{display:grid;grid-template-columns:62px minmax(0,1fr) auto;align-items:center;gap:9px}
+.flow-bar-row>span{font-size:10px;color:#788698;font-weight:650}
+.flow-bar-row>div{height:9px;border-radius:20px;background:#f0f3f2;overflow:hidden}
+.flow-bar-row>div i{display:block;height:100%;border-radius:20px;min-width:0}
+.flow-income{background:#0b9a80}.flow-expense{background:#f29b70}
+.flow-bar-row>b{font-size:10px;color:#253247;white-space:nowrap}
+.dash-widget-link{margin:16px 0 0 auto}
+.upcoming-widget{padding-bottom:10px}
+.upcoming-mini{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #f0f2f3}
+.upcoming-mini-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:12px;background:#edf5f2;color:#087f6e;flex:none}
+.upcoming-mini>div{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.upcoming-mini strong{font-size:11px;color:#263348;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upcoming-mini small{font-size:9px;color:#929dac}
+.upcoming-mini>b{font-size:11px;color:#263348;white-space:nowrap}
+.widget-empty{font-size:11px;line-height:1.5;color:#98a3b1;padding:9px 0 14px}
+@media(min-width:620px){.dash-widget-grid{grid-template-columns:1fr 1fr}}
