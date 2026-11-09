@@ -97,7 +97,7 @@ export default function HomePage(){
   if(loadError)return <main className="app-shell"><div className="auth-shell"><div className="auth-card"><div className="auth-brand"><Wallet size={26}/></div><h1>Could not load your data</h1><p>{loadError}</p><button className="auth-button" onClick={refresh}>Try again</button></div></div></main>;
   if(!ready)return <main className="app-shell"><div className="loading">Loading your finance data…</div></main>;
   return <main className="app-shell">
-    <header className="topbar reference-topbar"><button className="ref-menu" onClick={()=>setTab("more")} aria-label="Menu"><Menu size={26}/></button><strong>Cashflow</strong><div className="ref-actions"><button onClick={()=>window.location.reload()} aria-label="Refresh app and apply updates" title="Refresh app">↻</button><button onClick={()=>setTab("accounts")} aria-label="Accounts">₹</button></div></header>
+    <header className="topbar reference-topbar"><button className="ref-menu" onClick={()=>setTab("more")} aria-label="Menu"><Menu size={26}/></button><strong>Cashflow</strong><div className="ref-actions"><button onClick={()=>window.location.replace(window.location.pathname+"?refresh="+Date.now())} aria-label="Refresh app and apply updates" title="Refresh app">↻</button><button onClick={()=>setTab("accounts")} aria-label="Accounts">₹</button></div></header>
     {page}
     <nav className="bottom-nav reference-nav">
       <Nav icon={<Home/>} label="Home" active={tab==="home"} onClick={()=>setTab("home")}/>
