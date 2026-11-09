@@ -63,7 +63,7 @@ function calculateAmountExpression(input:string):number|null{
 const signed=(n:number)=>`${n>=0?"+":"-"}${money(n)}`;
 
 export default function HomePage(){
-  const [tab,setTab]=useState("home"),[showAdd,setShowAdd]=useState(false),[editTx,setEditTx]=useState<Transaction|null>(null),[sub,setSub]=useState(""),[data,setData]=useState<any>({transactions:[],accounts:[],clients:[],loans:[],borrowings:[],recurring:[],incomeSources:[]}),[ready,setReady]=useState(false),[loadError,setLoadError]=useState("");
+  const [tab,setTab]=useState("home"),[loanCurrency,setLoanCurrency]=useState<"INR"|"AED">("INR"),[showAdd,setShowAdd]=useState(false),[editTx,setEditTx]=useState<Transaction|null>(null),[sub,setSub]=useState(""),[data,setData]=useState<any>({transactions:[],accounts:[],clients:[],loans:[],borrowings:[],recurring:[],incomeSources:[]}),[ready,setReady]=useState(false),[loadError,setLoadError]=useState("");
   const refresh=async()=>{try{const [transactions,accounts,clients,loans,borrowings,recurring,incomeSources]=await Promise.all(STORES.map(s=>all<any>(s)));setData({transactions,accounts,clients,loans,borrowings,recurring,incomeSources});setLoadError("");setReady(true)}catch(error){setLoadError(error instanceof Error?error.message:"Could not load cloud data");setReady(false)}};
   useEffect(()=>{refresh()},[]);
   const tx:Transaction[]=data.transactions;
